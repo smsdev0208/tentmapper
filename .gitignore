@@ -1,0 +1,22 @@
+# Firebase config backups (keep local only)
+# Note: Firebase web config is safe to commit, but keeping
+# these files local as they contain keys in plain text
+FirebaseConfig.txt
+reCaptchaKeys.txt
+FireBaseSetupNotes.txt
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+

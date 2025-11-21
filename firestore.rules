@@ -1,0 +1,34 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Tents collection - allow read for all, controlled write
+    match /tents/{tentId} {
+      // Anyone can read tent data
+      allow read: if true;
+      
+      // Allow creation with required fields
+      allow create: if request.resource.data.keys().hasAll([
+        'latitude', 'longitude', 'createdAt', 'status', 
+        'votesYes', 'votesNo', 'photoUrls', 'votingEndsAt'
+      ]) && request.resource.data.status == 'pending'
+         && request.resource.data.votesYes == 0
+         && request.resource.data.votesNo == 0;
+      
+      // Allow updates only to specific fields (voting)
+      allow update: if request.resource.data.diff(resource.data)
+        .affectedKeys().hasOnly(['votesYes', 'votesNo', 'lastVerifiedAt', 'status', 'photoUrls']);
+    }
+    
+    // Votes collection - track individual votes
+    match /votes/{voteId} {
+      // Anyone can read votes (for checking if already voted)
+      allow read: if true;
+      
+      // Allow creating votes with required fields
+      allow create: if request.resource.data.keys().hasAll([
+        'tentId', 'sessionId', 'vote', 'timestamp'
+      ]) && (request.resource.data.vote == 'yes' || request.resource.data.vote == 'no');
+    }
+  }
+}
+
