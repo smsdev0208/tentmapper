@@ -69,7 +69,7 @@ async function submitTent(e) {
         // Get reCAPTCHA token
         console.log('Getting reCAPTCHA token...');
         const recaptchaToken = await getRecaptchaToken();
-        console.log('reCAPTCHA token obtained');
+        console.log('reCAPTCHA token obtained:', recaptchaToken.substring(0, 50) + '...');
         
         // Calculate voting end time (24 hours from now)
         const votingEndsAt = new Date();

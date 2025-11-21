@@ -2,21 +2,53 @@ import { db } from './firebase-config.js';
 import { collection, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { showTentModal, createPopupContent } from './tents.js';
 
-// Seattle coordinates
+// Seattle coordinates and boundaries
 const SEATTLE_CENTER = [47.6062, -122.3321];
 const SEATTLE_ZOOM = 12;
 
-// Initialize map
-export const map = L.map('map').setView(SEATTLE_CENTER, SEATTLE_ZOOM);
+// Define greater Seattle area bounds
+// Southwest: South of Tacoma
+// Northeast: North of Everett
+const SEATTLE_BOUNDS = [
+    [47.1, -122.6],  // Southwest corner
+    [47.95, -121.9]   // Northeast corner
+];
+
+// Initialize map with restrictions
+export const map = L.map('map', {
+    center: SEATTLE_CENTER,
+    zoom: SEATTLE_ZOOM,
+    maxBounds: SEATTLE_BOUNDS,
+    maxBoundsViscosity: 1.0,  // How strongly to enforce bounds (1.0 = hard boundary)
+    minZoom: 10,              // Prevent zooming out too far
+    maxZoom: 18               // Allow zooming in to street level
+}).setView(SEATTLE_CENTER, SEATTLE_ZOOM);
 
 // Add OpenStreetMap tile layer
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19
+    maxZoom: 18
 }).addTo(map);
+
+// Optional: Draw a subtle boundary rectangle to show the allowed area
+// Uncomment if you want users to see the boundary
+
+L.rectangle(SEATTLE_BOUNDS, {
+    color: '#667eea',
+    weight: 2,
+    fillOpacity: 0.02,
+    dashArray: '5, 10'
+}).addTo(map);
+
 
 // Store markers
 export const markers = {};
+
+// Helper function to check if coordinates are within Seattle bounds
+function isWithinSeattle(lat, lng) {
+    return lat >= SEATTLE_BOUNDS[0][0] && lat <= SEATTLE_BOUNDS[1][0] &&
+           lng >= SEATTLE_BOUNDS[0][1] && lng <= SEATTLE_BOUNDS[1][1];
+}
 
 // Custom marker icons
 const markerIcons = {
@@ -44,6 +76,12 @@ const markerIcons = {
 let pendingLocation = null;
 
 map.on('click', (e) => {
+    // Check if click is within Seattle area
+    if (!isWithinSeattle(e.latlng.lat, e.latlng.lng)) {
+        alert('Please place tents within the greater Seattle area only.');
+        return;
+    }
+    
     pendingLocation = {
         lat: e.latlng.lat,
         lng: e.latlng.lng
