@@ -10,8 +10,8 @@ const SEATTLE_ZOOM = 12;
 // Southwest: South of Tacoma
 // Northeast: North of Everett
 const SEATTLE_BOUNDS = [
-    [47.1, -122.6],  // Southwest corner
-    [47.95, -121.9]   // Northeast corner
+    [47.475, -122.45],  // Southwest corner
+    [47.75, -122.2]   // Northeast corner
 ];
 
 // Initialize map with restrictions
