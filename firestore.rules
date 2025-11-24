@@ -1,7 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Tents collection - allow read for all, controlled write
+    // Legacy Tents collection - keep for backwards compatibility
     match /tents/{tentId} {
       // Anyone can read tent data
       allow read: if true;
@@ -19,16 +19,39 @@ service cloud.firestore {
         .affectedKeys().hasOnly(['votesYes', 'votesNo', 'lastVerifiedAt', 'status', 'photoUrls']);
     }
     
+    // New Markers collection - supports tent, rv, encampment, incident
+    match /markers/{markerId} {
+      // Anyone can read marker data
+      allow read: if true;
+      
+      // Allow creation with required base fields
+      allow create: if request.resource.data.keys().hasAll([
+        'type', 'latitude', 'longitude', 'createdAt', 'status', 'photoUrls'
+      ]) && request.resource.data.status == 'pending'
+         && (request.resource.data.type in ['tent', 'rv', 'encampment', 'incident'])
+         // Incidents don't have voting fields
+         && (request.resource.data.type == 'incident' || 
+             (request.resource.data.keys().hasAll(['votesYes', 'votesNo', 'votingEndsAt'])
+              && request.resource.data.votesYes == 0
+              && request.resource.data.votesNo == 0));
+      
+      // Allow updates only to specific fields (voting and status)
+      allow update: if request.resource.data.diff(resource.data)
+        .affectedKeys().hasOnly(['votesYes', 'votesNo', 'lastVerifiedAt', 'status', 'photoUrls']);
+    }
+    
     // Votes collection - track individual votes
     match /votes/{voteId} {
       // Anyone can read votes (for checking if already voted)
       allow read: if true;
       
       // Allow creating votes with required fields
-      allow create: if request.resource.data.keys().hasAll([
-        'tentId', 'sessionId', 'vote', 'timestamp'
-      ]) && (request.resource.data.vote == 'yes' || request.resource.data.vote == 'no');
+      // Support both legacy tentId and new markerId
+      allow create: if (
+        (request.resource.data.keys().hasAll(['tentId', 'sessionId', 'vote', 'timestamp']) ||
+         request.resource.data.keys().hasAll(['markerId', 'sessionId', 'vote', 'timestamp']))
+        && (request.resource.data.vote == 'yes' || request.resource.data.vote == 'no')
+      );
     }
   }
 }
-

@@ -1,13 +1,17 @@
 # Seattle Tent Mapper
 
-A crowdsourced web application for mapping tent locations in Seattle. Users can report tent locations, vote on their current status, and upload photo evidence.
+A crowdsourced web application for mapping homeless encampments, RVs, tents, and incidents in Seattle. Users can report locations with specific details, vote on their current status, and upload photo evidence.
 
 ## Features
 
 - 🗺️ Interactive map centered on Seattle using OpenStreetMap
-- 📍 Click-to-place tent markers
-- ✅ Daily voting system to verify tent locations
-- 📸 Photo upload capability
+- 🎯 Radial donut menu with 4 marker types:
+  - **Tent**: Individual tent locations
+  - **RV**: RVs with side of street (North/South/East/West)
+  - **Encampment**: Multi-tent locations with approximate count
+  - **Incident**: Public safety incidents with type and timestamp
+- ✅ Daily voting system to verify tent/RV/encampment locations (not incidents)
+- 📸 Photo upload capability for all marker types
 - 🔄 Real-time updates across all users
 - 🛡️ reCAPTCHA v3 spam protection
 - 📱 Responsive design for mobile browsers
@@ -34,10 +38,12 @@ A crowdsourced web application for mapping tent locations in Seattle. Users can 
    - Navigate to `http://localhost:8000`
 
 2. **Test features**:
-   - Click anywhere on the map to report a tent
-   - Upload a photo (optional)
+   - Click anywhere on the map to see the radial menu
+   - Select a marker type (Tent, RV, Encampment, or Incident)
+   - Fill in type-specific details
+   - Upload a photo (optional, not available for incidents)
    - Submit the report
-   - Click on existing tent markers to vote
+   - Click on existing markers to vote (except incidents)
    - Votes are tracked per browser session (localStorage)
 
 ## Firebase Setup Required
@@ -53,29 +59,34 @@ Before deploying, ensure you have:
 
 ### Firestore Security Rules
 
-Go to Firebase Console > Firestore Database > Rules and update:
+Go to Firebase Console > Firestore Database > Rules and update (see `firestore.rules` file):
+
+The rules support both legacy `tents` collection and new `markers` collection with multiple types.
 
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow anyone to read tents
-    match /tents/{tentId} {
+    // New Markers collection - supports tent, rv, encampment, incident
+    match /markers/{markerId} {
       allow read: if true;
       allow create: if request.resource.data.keys().hasAll([
-        'latitude', 'longitude', 'createdAt', 'status', 
-        'votesYes', 'votesNo', 'photoUrls', 'votingEndsAt'
-      ]);
+        'type', 'latitude', 'longitude', 'createdAt', 'status', 'photoUrls'
+      ]) && request.resource.data.status == 'pending'
+         && (request.resource.data.type in ['tent', 'rv', 'encampment', 'incident'])
+         && (request.resource.data.type == 'incident' || 
+             (request.resource.data.keys().hasAll(['votesYes', 'votesNo', 'votingEndsAt'])
+              && request.resource.data.votesYes == 0
+              && request.resource.data.votesNo == 0));
       allow update: if request.resource.data.diff(resource.data)
         .affectedKeys().hasOnly(['votesYes', 'votesNo', 'lastVerifiedAt', 'status', 'photoUrls']);
     }
     
-    // Allow anyone to record votes
+    // Votes collection
     match /votes/{voteId} {
       allow read: if true;
-      allow create: if request.resource.data.keys().hasAll([
-        'tentId', 'sessionId', 'vote', 'timestamp'
-      ]);
+      allow create: if request.resource.data.keys().hasAll(['markerId', 'sessionId', 'vote', 'timestamp'])
+        && (request.resource.data.vote == 'yes' || request.resource.data.vote == 'no');
     }
   }
 }
@@ -83,15 +94,21 @@ service cloud.firestore {
 
 ### Firebase Storage Rules
 
-Go to Firebase Console > Storage > Rules and update:
+Go to Firebase Console > Storage > Rules and update (see `storage.rules` file):
 
 ```javascript
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /tent-photos/{tentId}/{filename} {
+    match /marker-photos/{markerId}/{filename} {
       allow read: if true;
       allow write: if request.resource.size < 5 * 1024 * 1024 // 5MB limit
+                   && request.resource.contentType.matches('image/.*');
+    }
+    // Keep legacy path for old tent photos
+    match /tent-photos/{tentId}/{filename} {
+      allow read: if true;
+      allow write: if request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
   }
@@ -123,24 +140,33 @@ service firebase.storage {
 
 ### Data Flow
 
-1. **Reporting a Tent**:
-   - User clicks map → modal opens
-   - User uploads photo (optional) → stored in Firebase Storage
+1. **Reporting a Marker**:
+   - User clicks map → radial donut menu appears
+   - User selects marker type (Tent, RV, Encampment, or Incident)
+   - Modal opens with type-specific fields
+   - User fills in required details and uploads photo (optional)
    - User submits → reCAPTCHA token generated
-   - Tent document created in Firestore with status: "pending"
+   - Marker document created in Firestore with status: "pending"
    - All connected clients see new marker immediately
 
-2. **Voting**:
+2. **Marker Types & Fields**:
+   - **Tent**: Basic location only
+   - **RV**: Side of street (North, South, East, West)
+   - **Encampment**: Approximate number of tents (integer)
+   - **Incident**: Type (public intoxication, substance use, noise, altercation, theft) + Date/Time
+
+3. **Voting** (Tent, RV, Encampment only - not Incidents):
    - User clicks vote button on marker popup
    - Session ID checked (localStorage) to prevent duplicate votes
    - Vote recorded in `votes` collection
-   - Tent document vote counters incremented
+   - Marker document vote counters incremented
    - Vote buttons disabled after voting
 
-3. **Real-time Updates**:
+4. **Real-time Updates**:
    - Firestore `onSnapshot` listener in `map.js`
-   - Any changes to tents collection trigger marker updates
-   - Color-coded markers: Yellow (pending), Red (verified), Gray (removed)
+   - Any changes to markers collection trigger marker updates
+   - Color-coded markers: Yellow (pending), Red (verified)
+   - Different icons for each marker type
 
 ### Session Management
 
@@ -152,14 +178,20 @@ service firebase.storage {
 
 ```
 tentmapper/
-├── index.html              # Main HTML file
+├── index.html              # Main HTML file with radial menu
 ├── css/
-│   └── style.css          # All styles
+│   └── style.css          # All styles including radial menu
 ├── js/
 │   ├── firebase-config.js # Firebase initialization
 │   ├── map.js             # Leaflet map & real-time listener
-│   ├── tents.js           # Tent CRUD operations
-│   └── voting.js          # Voting logic
+│   ├── tents.js           # Marker CRUD operations (all types)
+│   └── voting.js          # Voting logic (excludes incidents)
+├── tent.png               # Tent marker icon
+├── rv.png                 # RV marker icon
+├── encampment.png         # Encampment marker icon
+├── incident.png           # Incident marker icon
+├── firestore.rules        # Firestore security rules
+├── storage.rules          # Storage security rules
 ├── FirebaseConfig.txt     # Firebase config backup
 ├── reCaptchaKeys.txt      # reCAPTCHA keys backup
 └── README.md              # This file
@@ -181,10 +213,11 @@ tentmapper/
 - Check browser console for errors
 - Ensure you have internet connection (Leaflet tiles load from CDN)
 
-### Can't submit tent
+### Can't submit marker
 - Check Firebase console for quota limits
-- Verify Firestore security rules are set
+- Verify Firestore security rules are set for `markers` collection
 - Check browser console for reCAPTCHA errors
+- Ensure all required fields for marker type are filled
 
 ### Photos don't upload
 - Verify Firebase Storage is enabled

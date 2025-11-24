@@ -1,5 +1,5 @@
 import { db } from './firebase-config.js';
-import { doc, updateDoc, increment, collection, addDoc, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { doc, updateDoc, increment, collection, addDoc, query, where, getDocs, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 // Generate or retrieve session ID for vote tracking
 function getSessionId() {
@@ -11,12 +11,12 @@ function getSessionId() {
     return sessionId;
 }
 
-// Check if user has already voted on this tent
-async function hasUserVoted(tentId) {
+// Check if user has already voted on this marker
+async function hasUserVoted(markerId) {
     const sessionId = getSessionId();
     const votesRef = collection(db, 'votes');
     const q = query(votesRef, 
-        where('tentId', '==', tentId),
+        where('markerId', '==', markerId),
         where('sessionId', '==', sessionId)
     );
     
@@ -25,12 +25,27 @@ async function hasUserVoted(tentId) {
 }
 
 // Submit vote
-async function submitVote(tentId, vote) {
+async function submitVote(markerId, vote) {
     try {
+        // First, check if this is an incident (incidents don't support voting)
+        const markerRef = doc(db, 'markers', markerId);
+        const markerSnap = await getDoc(markerRef);
+        
+        if (!markerSnap.exists()) {
+            alert('Marker not found');
+            return false;
+        }
+        
+        const markerData = markerSnap.data();
+        if (markerData.type === 'incident') {
+            alert('Incidents do not support voting');
+            return false;
+        }
+        
         // Check if already voted
-        const alreadyVoted = await hasUserVoted(tentId);
+        const alreadyVoted = await hasUserVoted(markerId);
         if (alreadyVoted) {
-            alert('You have already voted on this tent today');
+            alert('You have already voted on this marker today');
             return false;
         }
         
@@ -38,16 +53,15 @@ async function submitVote(tentId, vote) {
         
         // Record vote
         await addDoc(collection(db, 'votes'), {
-            tentId: tentId,
+            markerId: markerId,
             sessionId: sessionId,
             vote: vote,
             timestamp: new Date()
         });
         
-        // Update tent vote counts
-        const tentRef = doc(db, 'tents', tentId);
+        // Update marker vote counts
         const updateField = vote === 'yes' ? 'votesYes' : 'votesNo';
-        await updateDoc(tentRef, {
+        await updateDoc(markerRef, {
             [updateField]: increment(1),
             lastVerifiedAt: new Date()
         });
@@ -67,16 +81,16 @@ function handleVoteClick(e) {
     const button = e.target.closest('.vote-btn');
     if (!button) return;
     
-    const tentId = button.dataset.tentId;
+    const markerId = button.dataset.markerId;
     const vote = button.dataset.vote;
     
-    if (!tentId || !vote) return;
+    if (!markerId || !vote) return;
     
     // Disable buttons while processing
-    const allButtons = document.querySelectorAll(`[data-tent-id="${tentId}"]`);
+    const allButtons = document.querySelectorAll(`[data-marker-id="${markerId}"]`);
     allButtons.forEach(btn => btn.disabled = true);
     
-    submitVote(tentId, vote).then(success => {
+    submitVote(markerId, vote).then(success => {
         if (!success) {
             // Re-enable buttons if vote failed
             allButtons.forEach(btn => btn.disabled = false);
@@ -93,4 +107,3 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 export { submitVote, hasUserVoted };
-

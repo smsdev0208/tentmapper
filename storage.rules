@@ -1,7 +1,17 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Tent photos - anyone can read, controlled write
+    // Marker photos (new) - anyone can read, controlled write
+    match /marker-photos/{markerId}/{filename} {
+      // Anyone can read photos
+      allow read: if true;
+      
+      // Only allow image uploads under 5MB
+      allow write: if request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+    
+    // Legacy tent photos - keep for backwards compatibility
     match /tent-photos/{tentId}/{filename} {
       // Anyone can read photos
       allow read: if true;
@@ -12,4 +22,3 @@ service firebase.storage {
     }
   }
 }
-

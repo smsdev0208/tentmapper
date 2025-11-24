@@ -19,7 +19,7 @@
         <!-- Header -->
         <header>
             <h1>🏕️ Seattle Tent Mapper</h1>
-            <p>Help crowdsource tent locations in Seattle</p>
+            <p>Help crowdsource homeless encampments, RVs, tents, and incidents in Seattle</p>
         </header>
 
         <!-- Info Panel -->
@@ -27,18 +27,17 @@
             <div class="instructions">
                 <h3>How to use:</h3>
                 <ul>
-                    <li>📍 <strong>Click on the map</strong> to report a tent location</li>
-                    <li>✅ <strong>Vote daily</strong> on whether tents are still present</li>
+                    <li>📍 <strong>Click on the map</strong> to report a tent, RV, encampment, or incident</li>
+                    <li>✅ <strong>Vote daily</strong> on whether tents/RVs/encampments are still present</li>
                     <li>📸 <strong>Upload photos</strong> as evidence</li>
                     <li>🗺️ <strong>Legend:</strong> 
                         <span class="legend-item pending">Yellow = Pending</span>
                         <span class="legend-item verified">Red = Verified</span>
-                        <span class="legend-item removed">Gray = Removed</span>
                     </li>
                 </ul>
             </div>
             <div id="stats">
-                <p>Total tents: <span id="tent-count">0</span></p>
+                <p>Total markers: <span id="tent-count">0</span></p>
             </div>
         </div>
 
@@ -51,21 +50,89 @@
         </div>
     </div>
 
-    <!-- Modal for Adding Tent -->
-    <div id="tent-modal" class="modal hidden">
+    <!-- Radial Menu for Marker Type Selection -->
+    <div id="radial-menu" class="radial-menu hidden">
+        <div class="radial-menu-center"></div>
+        <div class="radial-menu-item" data-type="tent" data-position="top-left">
+            <img src="tent.png" alt="Tent">
+            <span>Tent</span>
+        </div>
+        <div class="radial-menu-item" data-type="rv" data-position="top-right">
+            <img src="rv.png" alt="RV">
+            <span>RV</span>
+        </div>
+        <div class="radial-menu-item" data-type="encampment" data-position="bottom-left">
+            <img src="encampment.png" alt="Encampment">
+            <span>Encampment</span>
+        </div>
+        <div class="radial-menu-item" data-type="incident" data-position="bottom-right">
+            <img src="incident.png" alt="Incident">
+            <span>Incident</span>
+        </div>
+    </div>
+
+    <!-- Modal for Adding Marker -->
+    <div id="marker-modal" class="modal hidden">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <h2>Report a Tent</h2>
-            <form id="tent-form">
+            <h2 id="modal-title">Report a Marker</h2>
+            <form id="marker-form">
                 <div class="form-group">
                     <label>Location:</label>
-                    <p id="tent-location-display"></p>
+                    <p id="marker-location-display"></p>
                 </div>
-                <div class="form-group">
-                    <label for="tent-photo">Photo (optional):</label>
-                    <input type="file" id="tent-photo" accept="image/*">
+                
+                <!-- Tent specific fields (none) -->
+                <div id="tent-fields" class="type-specific-fields hidden"></div>
+                
+                <!-- RV specific fields -->
+                <div id="rv-fields" class="type-specific-fields hidden">
+                    <div class="form-group">
+                        <label for="rv-side">Side of Street:</label>
+                        <select id="rv-side" data-required="true">
+                            <option value="">Select side...</option>
+                            <option value="north">North</option>
+                            <option value="south">South</option>
+                            <option value="east">East</option>
+                            <option value="west">West</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Encampment specific fields -->
+                <div id="encampment-fields" class="type-specific-fields hidden">
+                    <div class="form-group">
+                        <label for="encampment-count">Approximate Number of Tents:</label>
+                        <input type="number" id="encampment-count" min="1" max="1000" data-required="true">
+                    </div>
+                </div>
+                
+                <!-- Incident specific fields -->
+                <div id="incident-fields" class="type-specific-fields hidden">
+                    <div class="form-group">
+                        <label for="incident-type">Incident Type:</label>
+                        <select id="incident-type" data-required="true">
+                            <option value="">Select type...</option>
+                            <option value="public-intoxication">Public Intoxication</option>
+                            <option value="public-illicit-substance-use">Public Illicit Substance Use</option>
+                            <option value="noise-disturbance">Noise Disturbance</option>
+                            <option value="altercation">Altercation</option>
+                            <option value="theft">Theft</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="incident-datetime">Incident Date & Time:</label>
+                        <input type="datetime-local" id="incident-datetime" data-required="true">
+                    </div>
+                </div>
+                
+                <!-- Photo upload (for all except hidden for incidents in JS) -->
+                <div id="photo-group" class="form-group">
+                    <label for="marker-photo">Photo (optional):</label>
+                    <input type="file" id="marker-photo" accept="image/*">
                     <div id="photo-preview"></div>
                 </div>
+                
                 <div class="form-actions">
                     <button type="button" id="cancel-btn" class="btn-secondary">Cancel</button>
                     <button type="submit" class="btn-primary">Submit Report</button>

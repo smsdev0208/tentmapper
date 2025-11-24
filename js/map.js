@@ -1,6 +1,6 @@
 import { db } from './firebase-config.js';
 import { collection, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { showTentModal, createPopupContent } from './tents.js';
+import { showMarkerModal, createPopupContent } from './tents.js';
 
 // Seattle coordinates and boundaries
 const SEATTLE_CENTER = [47.6062, -122.3321];
@@ -50,35 +50,74 @@ function isWithinSeattle(lat, lng) {
            lng >= SEATTLE_BOUNDS[0][1] && lng <= SEATTLE_BOUNDS[1][1];
 }
 
-// Custom marker icons using tent.png
+// Custom marker icons for different types
 const markerIcons = {
-    pending: L.divIcon({
-        className: 'custom-marker',
-        html: '<div style="filter: hue-rotate(30deg) saturate(2); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="tent.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
-        iconSize: [40, 40],
-        iconAnchor: [20, 40]
-    }),
-    verified: L.divIcon({
-        className: 'custom-marker',
-        html: '<div style="filter: hue-rotate(350deg) saturate(1.5); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="tent.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
-        iconSize: [40, 40],
-        iconAnchor: [20, 40]
-    }),
-    removed: L.divIcon({
-        className: 'custom-marker',
-        html: '<div style="filter: grayscale(100%) brightness(0.7); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="tent.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
-        iconSize: [40, 40],
-        iconAnchor: [20, 40]
-    })
+    tent: {
+        pending: L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="filter: hue-rotate(30deg) saturate(2); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="tent.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40]
+        }),
+        verified: L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="filter: hue-rotate(350deg) saturate(1.5); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="tent.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40]
+        })
+    },
+    rv: {
+        pending: L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="filter: hue-rotate(30deg) saturate(2); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="rv.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40]
+        }),
+        verified: L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="filter: hue-rotate(350deg) saturate(1.5); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="rv.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40]
+        })
+    },
+    encampment: {
+        pending: L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="filter: hue-rotate(30deg) saturate(2); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="encampment.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40]
+        }),
+        verified: L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="filter: hue-rotate(350deg) saturate(1.5); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="encampment.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40]
+        })
+    },
+    incident: {
+        pending: L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="incident.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40]
+        }),
+        verified: L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="incident.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40]
+        })
+    }
 };
 
-// Add click handler to place new tent
+// Add click handler to show radial menu
 let pendingLocation = null;
+let radialMenu = null;
 
 map.on('click', (e) => {
     // Check if click is within Seattle area
     if (!isWithinSeattle(e.latlng.lat, e.latlng.lng)) {
-        alert('Please place tents within the greater Seattle area only.');
+        alert('Please place markers within the greater Seattle area only.');
         return;
     }
     
@@ -86,61 +125,110 @@ map.on('click', (e) => {
         lat: e.latlng.lat,
         lng: e.latlng.lng
     };
-    showTentModal(pendingLocation);
+    showRadialMenu(e.originalEvent.clientX, e.originalEvent.clientY);
 });
 
+// Show radial menu at click position
+function showRadialMenu(x, y) {
+    if (!radialMenu) {
+        radialMenu = document.getElementById('radial-menu');
+        
+        // Add click handlers to menu items
+        radialMenu.querySelectorAll('.radial-menu-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const type = e.currentTarget.getAttribute('data-type');
+                hideRadialMenu();
+                showMarkerModal(pendingLocation, type);
+            });
+        });
+        
+        // Click outside to close
+        document.addEventListener('click', (e) => {
+            if (radialMenu && !radialMenu.contains(e.target) && 
+                radialMenu.classList.contains('active')) {
+                hideRadialMenu();
+            }
+        });
+    }
+    
+    // Position menu centered on click point
+    radialMenu.style.left = (x - 150) + 'px';
+    radialMenu.style.top = (y - 150) + 'px';
+    radialMenu.classList.remove('hidden');
+    
+    // Small delay to trigger animation
+    setTimeout(() => {
+        radialMenu.classList.add('active');
+    }, 10);
+}
+
+// Hide radial menu
+function hideRadialMenu() {
+    if (radialMenu) {
+        radialMenu.classList.remove('active');
+        setTimeout(() => {
+            radialMenu.classList.add('hidden');
+        }, 300);
+    }
+}
+
 // Listen to Firestore updates
-function initializeTentListener() {
-    const tentsRef = collection(db, 'tents');
-    const q = query(tentsRef, orderBy('createdAt', 'desc'));
+function initializeMarkerListener() {
+    const markersRef = collection(db, 'markers');
+    const q = query(markersRef, orderBy('createdAt', 'desc'));
     
     onSnapshot(q, (snapshot) => {
         snapshot.docChanges().forEach((change) => {
-            const tent = { id: change.doc.id, ...change.doc.data() };
+            const marker = { id: change.doc.id, ...change.doc.data() };
             
             if (change.type === 'added' || change.type === 'modified') {
-                updateMarker(tent);
+                updateMarker(marker);
             } else if (change.type === 'removed') {
-                removeMarker(tent.id);
+                removeMarker(marker.id);
             }
         });
         
         updateStats();
     }, (error) => {
-        console.error('Error listening to tents:', error);
+        console.error('Error listening to markers:', error);
     });
 }
 
 // Update or create marker
-function updateMarker(tent) {
+function updateMarker(markerData) {
     // Remove existing marker if it exists
-    if (markers[tent.id]) {
-        map.removeLayer(markers[tent.id]);
+    if (markers[markerData.id]) {
+        map.removeLayer(markers[markerData.id]);
     }
     
-    // Don't show removed tents
-    if (tent.status === 'removed') {
+    // Don't show removed markers
+    if (markerData.status === 'removed') {
         return;
     }
     
+    // Get marker type (default to tent for backwards compatibility)
+    const type = markerData.type || 'tent';
+    const status = markerData.status || 'pending';
+    
     // Create marker with appropriate icon
-    const icon = markerIcons[tent.status] || markerIcons.pending;
-    const marker = L.marker([tent.latitude, tent.longitude], { icon });
+    const iconSet = markerIcons[type] || markerIcons.tent;
+    const icon = iconSet[status] || iconSet.pending;
+    const marker = L.marker([markerData.latitude, markerData.longitude], { icon });
     
     // Add popup
-    const popupContent = createPopupContent(tent);
+    const popupContent = createPopupContent(markerData);
     marker.bindPopup(popupContent);
     
     // Add to map
     marker.addTo(map);
-    markers[tent.id] = marker;
+    markers[markerData.id] = marker;
 }
 
 // Remove marker
-function removeMarker(tentId) {
-    if (markers[tentId]) {
-        map.removeLayer(markers[tentId]);
-        delete markers[tentId];
+function removeMarker(markerId) {
+    if (markers[markerId]) {
+        map.removeLayer(markers[markerId]);
+        delete markers[markerId];
     }
 }
 
@@ -152,8 +240,8 @@ function updateStats() {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    initializeTentListener();
-    console.log('Map initialized and listening for tent updates');
+    initializeMarkerListener();
+    console.log('Map initialized and listening for marker updates');
 });
 
 export { pendingLocation };
