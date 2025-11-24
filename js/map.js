@@ -50,25 +50,25 @@ function isWithinSeattle(lat, lng) {
            lng >= SEATTLE_BOUNDS[0][1] && lng <= SEATTLE_BOUNDS[1][1];
 }
 
-// Custom marker icons
+// Custom marker icons using tent.png
 const markerIcons = {
     pending: L.divIcon({
         className: 'custom-marker',
-        html: '<div style="background: #ffc107; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>',
-        iconSize: [30, 30],
-        iconAnchor: [15, 15]
+        html: '<div style="filter: hue-rotate(30deg) saturate(2); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="tent.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40]
     }),
     verified: L.divIcon({
         className: 'custom-marker',
-        html: '<div style="background: #dc3545; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>',
-        iconSize: [30, 30],
-        iconAnchor: [15, 15]
+        html: '<div style="filter: hue-rotate(350deg) saturate(1.5); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="tent.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40]
     }),
     removed: L.divIcon({
         className: 'custom-marker',
-        html: '<div style="background: #6c757d; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>',
-        iconSize: [30, 30],
-        iconAnchor: [15, 15]
+        html: '<div style="filter: grayscale(100%) brightness(0.7); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="tent.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40]
     })
 };
 
