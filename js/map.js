@@ -134,6 +134,13 @@ map.on('click', (e) => {
     showRadialMenu(e.originalEvent.clientX, e.originalEvent.clientY);
 });
 
+// Close radial menu when zooming
+map.on('zoomstart', () => {
+    if (radialMenuActive) {
+        hideRadialMenu();
+    }
+});
+
 // Show radial menu at click position
 function showRadialMenu(x, y) {
     if (!radialMenu) {
