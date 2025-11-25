@@ -153,9 +153,9 @@ function showRadialMenu(x, y) {
         });
     }
     
-    // Position menu centered on click point
-    radialMenu.style.left = (x - 140) + 'px';
-    radialMenu.style.top = (y - 140) + 'px';
+    // Position menu centered on click point (240px / 2 = 120px offset)
+    radialMenu.style.left = (x - 120) + 'px';
+    radialMenu.style.top = (y - 120) + 'px';
     radialMenu.classList.remove('hidden');
     radialMenuActive = true;
     

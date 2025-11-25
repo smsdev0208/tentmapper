@@ -410,46 +410,74 @@ header p {
 /* Radial Donut Menu */
 .radial-menu {
     position: fixed;
-    width: 280px;
-    height: 280px;
+    width: 240px;
+    height: 240px;
     z-index: 10001;
     pointer-events: none;
+    border-radius: 50%;
 }
 
 .radial-menu.active {
     pointer-events: auto;
 }
 
-.radial-menu-center {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 60px;
-    height: 60px;
-    background: white;
-    border: 3px solid #667eea;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 10;
-    pointer-events: none;
-}
-
-.radial-menu-item {
+/* The ring background */
+.radial-menu-ring {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    border: 3px solid #667eea;
+    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
     opacity: 0;
-    transform: scale(0);
-    clip-path: polygon(50% 50%, 50% 0%, 100% 0%, 100% 50%);
+    transform: scale(0.8);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    /* Create donut hole using mask */
+    -webkit-mask: radial-gradient(circle at center, transparent 32px, black 35px);
+    mask: radial-gradient(circle at center, transparent 32px, black 35px);
+}
+
+.radial-menu.active .radial-menu-ring {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Center circle (the donut hole visual) */
+.radial-menu-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 70px;
+    height: 70px;
+    background: white;
+    border: 3px solid #667eea;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.radial-menu.active .radial-menu-center {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* Each menu item is a quadrant - using conic gradient for visual division */
+.radial-menu-item {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    border-radius: 50%;
 }
 
 .radial-menu.active .radial-menu-item {
@@ -457,7 +485,7 @@ header p {
     transform: scale(1);
 }
 
-/* Create donut shape with inner circle cutout */
+/* Quadrant hover backgrounds - using conic-gradient and mask */
 .radial-menu-item::before {
     content: '';
     position: absolute;
@@ -465,91 +493,181 @@ header p {
     left: 0;
     width: 100%;
     height: 100%;
-    background: white;
-    border: 2px solid #667eea;
-    clip-path: inherit;
-    z-index: -1;
-    transition: background 0.3s ease;
-}
-
-.radial-menu-item::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 60px;
-    height: 60px;
-    background: transparent;
     border-radius: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
 }
 
-/* Position each quadrant */
+/* Top-left quadrant (from 180° to 270°) */
 .radial-menu-item[data-position="top-left"] {
-    clip-path: polygon(50% 50%, 50% 0%, 0% 0%, 0% 50%);
+    clip-path: polygon(0 0, 50% 0, 50% 50%, 0 50%);
     transition-delay: 0.05s;
 }
 
-.radial-menu-item[data-position="top-left"] .radial-menu-content {
-    transform: translate(-35%, -35%);
+.radial-menu-item[data-position="top-left"]::before {
+    background: conic-gradient(from 180deg at 50% 50%, rgba(102, 126, 234, 0.2) 0deg, rgba(102, 126, 234, 0.2) 90deg, transparent 90deg);
+    -webkit-mask: radial-gradient(circle at center, transparent 32px, black 35px);
+    mask: radial-gradient(circle at center, transparent 32px, black 35px);
 }
 
+.radial-menu-item[data-position="top-left"]:hover::before {
+    opacity: 1;
+}
+
+.radial-menu-item[data-position="top-left"] .radial-menu-content {
+    position: absolute;
+    top: 25%;
+    left: 25%;
+    transform: translate(-50%, -50%);
+}
+
+/* Top-right quadrant (from 270° to 360°) */
 .radial-menu-item[data-position="top-right"] {
-    clip-path: polygon(50% 50%, 50% 0%, 100% 0%, 100% 50%);
+    clip-path: polygon(50% 0, 100% 0, 100% 50%, 50% 50%);
     transition-delay: 0.1s;
 }
 
-.radial-menu-item[data-position="top-right"] .radial-menu-content {
-    transform: translate(35%, -35%);
+.radial-menu-item[data-position="top-right"]::before {
+    background: conic-gradient(from 270deg at 50% 50%, rgba(102, 126, 234, 0.2) 0deg, rgba(102, 126, 234, 0.2) 90deg, transparent 90deg);
+    -webkit-mask: radial-gradient(circle at center, transparent 32px, black 35px);
+    mask: radial-gradient(circle at center, transparent 32px, black 35px);
 }
 
+.radial-menu-item[data-position="top-right"]:hover::before {
+    opacity: 1;
+}
+
+.radial-menu-item[data-position="top-right"] .radial-menu-content {
+    position: absolute;
+    top: 25%;
+    left: 75%;
+    transform: translate(-50%, -50%);
+}
+
+/* Bottom-left quadrant (from 90° to 180°) */
 .radial-menu-item[data-position="bottom-left"] {
-    clip-path: polygon(50% 50%, 0% 50%, 0% 100%, 50% 100%);
+    clip-path: polygon(0 50%, 50% 50%, 50% 100%, 0 100%);
     transition-delay: 0.15s;
 }
 
-.radial-menu-item[data-position="bottom-left"] .radial-menu-content {
-    transform: translate(-35%, 35%);
+.radial-menu-item[data-position="bottom-left"]::before {
+    background: conic-gradient(from 90deg at 50% 50%, rgba(102, 126, 234, 0.2) 0deg, rgba(102, 126, 234, 0.2) 90deg, transparent 90deg);
+    -webkit-mask: radial-gradient(circle at center, transparent 32px, black 35px);
+    mask: radial-gradient(circle at center, transparent 32px, black 35px);
 }
 
+.radial-menu-item[data-position="bottom-left"]:hover::before {
+    opacity: 1;
+}
+
+.radial-menu-item[data-position="bottom-left"] .radial-menu-content {
+    position: absolute;
+    top: 75%;
+    left: 25%;
+    transform: translate(-50%, -50%);
+}
+
+/* Bottom-right quadrant (from 0° to 90°) */
 .radial-menu-item[data-position="bottom-right"] {
-    clip-path: polygon(50% 50%, 50% 100%, 100% 100%, 100% 50%);
+    clip-path: polygon(50% 50%, 100% 50%, 100% 100%, 50% 100%);
     transition-delay: 0.2s;
 }
 
-.radial-menu-item[data-position="bottom-right"] .radial-menu-content {
-    transform: translate(35%, 35%);
+.radial-menu-item[data-position="bottom-right"]::before {
+    background: conic-gradient(from 0deg at 50% 50%, rgba(102, 126, 234, 0.2) 0deg, rgba(102, 126, 234, 0.2) 90deg, transparent 90deg);
+    -webkit-mask: radial-gradient(circle at center, transparent 32px, black 35px);
+    mask: radial-gradient(circle at center, transparent 32px, black 35px);
 }
 
-.radial-menu-item:hover::before {
-    background: #f0f4ff;
-    border-color: #5568d3;
+.radial-menu-item[data-position="bottom-right"]:hover::before {
+    opacity: 1;
+}
+
+.radial-menu-item[data-position="bottom-right"] .radial-menu-content {
+    position: absolute;
+    top: 75%;
+    left: 75%;
+    transform: translate(-50%, -50%);
+}
+
+/* Divider lines between quadrants */
+.radial-menu-dividers {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.radial-menu.active .radial-menu-dividers {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.radial-menu-dividers::before,
+.radial-menu-dividers::after {
+    content: '';
+    position: absolute;
+    background: rgba(102, 126, 234, 0.4);
+}
+
+/* Vertical divider */
+.radial-menu-dividers::before {
+    top: 0;
+    left: 50%;
+    width: 2px;
+    height: 100%;
+    transform: translateX(-50%);
+    -webkit-mask: radial-gradient(circle at 50% 50%, transparent 32px, black 35px);
+    mask: radial-gradient(circle at 50% 50%, transparent 32px, black 35px);
+}
+
+/* Horizontal divider */
+.radial-menu-dividers::after {
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    transform: translateY(-50%);
+    -webkit-mask: radial-gradient(circle at 50% 50%, transparent 32px, black 35px);
+    mask: radial-gradient(circle at 50% 50%, transparent 32px, black 35px);
 }
 
 .radial-menu-content {
-    position: relative;
-    z-index: 2;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     pointer-events: none;
+    width: 70px;
 }
 
 .radial-menu-item img {
-    width: 45px;
-    height: 45px;
+    width: 36px;
+    height: 36px;
     object-fit: contain;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.15rem;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    transition: transform 0.2s ease;
+}
+
+.radial-menu-item:hover img {
+    transform: scale(1.1);
 }
 
 .radial-menu-item span {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: #495057;
     text-align: center;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
+    transition: color 0.2s ease;
 }
 
 .radial-menu-item:hover span {
@@ -601,27 +719,45 @@ header p {
     }
     
     .radial-menu {
-        width: 220px;
-        height: 220px;
+        width: 200px;
+        height: 200px;
     }
     
     .radial-menu-center {
-        width: 50px;
-        height: 50px;
+        width: 56px;
+        height: 56px;
     }
     
-    .radial-menu-item::after {
-        width: 50px;
-        height: 50px;
+    .radial-menu-ring {
+        -webkit-mask: radial-gradient(circle at center, transparent 26px, black 29px);
+        mask: radial-gradient(circle at center, transparent 26px, black 29px);
+    }
+    
+    .radial-menu-item[data-position="top-left"]::before,
+    .radial-menu-item[data-position="top-right"]::before,
+    .radial-menu-item[data-position="bottom-left"]::before,
+    .radial-menu-item[data-position="bottom-right"]::before {
+        -webkit-mask: radial-gradient(circle at center, transparent 26px, black 29px);
+        mask: radial-gradient(circle at center, transparent 26px, black 29px);
+    }
+    
+    .radial-menu-dividers::before,
+    .radial-menu-dividers::after {
+        -webkit-mask: radial-gradient(circle at 50% 50%, transparent 26px, black 29px);
+        mask: radial-gradient(circle at 50% 50%, transparent 26px, black 29px);
     }
     
     .radial-menu-item img {
-        width: 35px;
-        height: 35px;
+        width: 30px;
+        height: 30px;
     }
     
     .radial-menu-item span {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
+    }
+    
+    .radial-menu-content {
+        width: 56px;
     }
 }
 
