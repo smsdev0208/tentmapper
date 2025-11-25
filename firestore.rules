@@ -38,7 +38,7 @@ service cloud.firestore {
       // Allow updates only to specific fields (voting and status)
       allow update: if request.resource.data.diff(resource.data)
         .affectedKeys().hasOnly(['votesYes', 'votesNo', 'lastVerifiedAt', 'status', 'photoUrls']);
-    }
+    } 
     
     // Votes collection - track individual votes
     match /votes/{voteId} {

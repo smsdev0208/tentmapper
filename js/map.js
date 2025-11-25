@@ -113,8 +113,14 @@ const markerIcons = {
 // Add click handler to show radial menu
 let pendingLocation = null;
 let radialMenu = null;
+let radialMenuActive = false;
 
 map.on('click', (e) => {
+    // Don't show menu if one is already active
+    if (radialMenuActive) {
+        return;
+    }
+    
     // Check if click is within Seattle area
     if (!isWithinSeattle(e.latlng.lat, e.latlng.lng)) {
         alert('Please place markers within the greater Seattle area only.');
@@ -136,29 +142,39 @@ function showRadialMenu(x, y) {
         // Add click handlers to menu items
         radialMenu.querySelectorAll('.radial-menu-item').forEach(item => {
             item.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent event from bubbling to document
                 const type = e.currentTarget.getAttribute('data-type');
                 hideRadialMenu();
-                showMarkerModal(pendingLocation, type);
+                // Small delay before showing modal
+                setTimeout(() => {
+                    showMarkerModal(pendingLocation, type);
+                }, 100);
             });
-        });
-        
-        // Click outside to close
-        document.addEventListener('click', (e) => {
-            if (radialMenu && !radialMenu.contains(e.target) && 
-                radialMenu.classList.contains('active')) {
-                hideRadialMenu();
-            }
         });
     }
     
     // Position menu centered on click point
-    radialMenu.style.left = (x - 150) + 'px';
-    radialMenu.style.top = (y - 150) + 'px';
+    radialMenu.style.left = (x - 140) + 'px';
+    radialMenu.style.top = (y - 140) + 'px';
     radialMenu.classList.remove('hidden');
+    radialMenuActive = true;
     
     // Small delay to trigger animation
     setTimeout(() => {
         radialMenu.classList.add('active');
+        
+        // Add one-time click listener to close menu when clicking outside
+        const closeMenuHandler = (e) => {
+            if (!radialMenu.contains(e.target)) {
+                hideRadialMenu();
+                document.removeEventListener('click', closeMenuHandler);
+            }
+        };
+        
+        // Delay adding the listener so the current click doesn't trigger it
+        setTimeout(() => {
+            document.addEventListener('click', closeMenuHandler);
+        }, 100);
     }, 10);
 }
 
@@ -168,6 +184,7 @@ function hideRadialMenu() {
         radialMenu.classList.remove('active');
         setTimeout(() => {
             radialMenu.classList.add('hidden');
+            radialMenuActive = false;
         }, 300);
     }
 }
