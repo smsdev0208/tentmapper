@@ -114,6 +114,7 @@ const markerIcons = {
 let pendingLocation = null;
 let radialMenu = null;
 let radialMenuActive = false;
+let currentCloseMenuHandler = null; // Track the current close handler
 
 map.on('click', (e) => {
     // Don't show menu if one is already active
@@ -170,17 +171,16 @@ function showRadialMenu(x, y) {
     setTimeout(() => {
         radialMenu.classList.add('active');
         
-        // Add one-time click listener to close menu when clicking outside
-        const closeMenuHandler = (e) => {
+        // Create close handler for clicking outside
+        currentCloseMenuHandler = (e) => {
             if (!radialMenu.contains(e.target)) {
                 hideRadialMenu();
-                document.removeEventListener('click', closeMenuHandler);
             }
         };
         
         // Delay adding the listener so the current click doesn't trigger it
         setTimeout(() => {
-            document.addEventListener('click', closeMenuHandler);
+            document.addEventListener('click', currentCloseMenuHandler);
         }, 100);
     }, 10);
 }
@@ -189,6 +189,13 @@ function showRadialMenu(x, y) {
 function hideRadialMenu() {
     if (radialMenu) {
         radialMenu.classList.remove('active');
+        
+        // Remove the document click listener if it exists
+        if (currentCloseMenuHandler) {
+            document.removeEventListener('click', currentCloseMenuHandler);
+            currentCloseMenuHandler = null;
+        }
+        
         setTimeout(() => {
             radialMenu.classList.add('hidden');
             radialMenuActive = false;
