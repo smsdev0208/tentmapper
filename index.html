@@ -8,6 +8,14 @@
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+    
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
     
@@ -17,32 +25,179 @@
 <body>
     <div id="app">
         <!-- Header -->
-        <header>
-            <h1>🏕️ Seattle Tent Mapper</h1>
-            <p>Help crowdsource homeless encampments, RVs, tents, and incidents in Seattle</p>
+        <header class="site-header">
+            <div class="header-left">
+                <h1>Seattle Tent Mapper</h1>
+            </div>
+            <div class="header-right">
+                <div class="social-icons">
+                    <a href="#" class="social-icon" title="Twitter/X">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                        </svg>
+                    </a>
+                    <a href="#" class="social-icon" title="Facebook">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                        </svg>
+                    </a>
+                    <a href="#" class="social-icon" title="Instagram">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                        </svg>
+                    </a>
+                </div>
+                <a href="#" class="about-link">About</a>
+            </div>
         </header>
 
-        <!-- Info Panel -->
-        <div id="info-panel">
-            <div class="instructions">
-                <h3>How to use:</h3>
-                <ul>
-                    <li>📍 <strong>Click on the map</strong> to report a tent, RV, encampment, or incident</li>
-                    <li>✅ <strong>Vote daily</strong> on whether tents/RVs/encampments are still present</li>
-                    <li>📸 <strong>Upload photos</strong> as evidence</li>
-                    <li>🗺️ <strong>Legend:</strong> 
-                        <span class="legend-item pending">Yellow = Pending</span>
-                        <span class="legend-item verified">Red = Verified</span>
-                    </li>
-                </ul>
-            </div>
-            <div id="stats">
-                <p>Total markers: <span id="tent-count">0</span></p>
-            </div>
-        </div>
+        <!-- Tab Navigation -->
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="map">Map</button>
+            <button class="tab-btn" data-tab="trends">Trends</button>
+        </nav>
 
-        <!-- Map Container -->
-        <div id="map"></div>
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Left Sidebar (News Feed) -->
+            <aside class="sidebar sidebar-left collapsed" id="left-sidebar">
+                <div class="sidebar-toggle" id="left-sidebar-toggle">
+                    <span class="toggle-icon">❯</span>
+                    <span class="toggle-label">News</span>
+                </div>
+                <div class="sidebar-content">
+                    <div class="sidebar-header">
+                        <h3>Activity Feed</h3>
+                    </div>
+                    <div class="news-feed" id="news-feed">
+                        <div class="feed-section">
+                            <h4>Today's Summary</h4>
+                            <div class="daily-tally" id="daily-tally">
+                                <div class="tally-item">
+                                    <span class="tally-count" id="today-tents">0</span>
+                                    <span class="tally-label">New Tents</span>
+                                </div>
+                                <div class="tally-item">
+                                    <span class="tally-count" id="today-rvs">0</span>
+                                    <span class="tally-label">New RVs</span>
+                                </div>
+                                <div class="tally-item">
+                                    <span class="tally-count" id="today-encampments">0</span>
+                                    <span class="tally-label">New Encampments</span>
+                                </div>
+                                <div class="tally-item">
+                                    <span class="tally-count" id="today-incidents">0</span>
+                                    <span class="tally-label">New Incidents</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="feed-section">
+                            <h4>Recent Activity</h4>
+                            <div class="activity-list" id="activity-list">
+                                <p class="empty-state">No recent activity</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Map Tab Content -->
+            <div class="tab-content active" id="map-tab">
+                <!-- Map Container -->
+                <div id="map-container">
+                    <div id="map"></div>
+                    
+                    <!-- Map Overlay Controls -->
+                    <div class="map-controls">
+                        <!-- Help Button -->
+                        <div class="control-group help-group">
+                            <button class="control-btn help-btn" id="help-btn" title="How to use">?</button>
+                            <div class="help-popup hidden" id="help-popup">
+                                <div class="help-content">
+                                    <h4>How to Use</h4>
+                                    <ul>
+                                        <li>📍 <strong>Click on the map</strong> to report a tent, RV, encampment, or incident</li>
+                                        <li>✅ <strong>Vote daily</strong> on whether tents/RVs/encampments are still present</li>
+                                        <li>📸 <strong>Upload photos</strong> as evidence</li>
+                                        <li>🗺️ <strong>Legend:</strong> 
+                                            <span class="legend-item pending">Yellow = Pending</span>
+                                            <span class="legend-item verified">Red = Verified</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Filter Checkboxes -->
+                        <div class="control-group filter-group">
+                            <label class="filter-checkbox">
+                                <input type="checkbox" id="filter-confirmed" checked>
+                                <span class="checkbox-custom confirmed"></span>
+                                <span class="filter-label">Confirmed</span>
+                            </label>
+                            <label class="filter-checkbox">
+                                <input type="checkbox" id="filter-pending" checked>
+                                <span class="checkbox-custom pending"></span>
+                                <span class="filter-label">Pending</span>
+                            </label>
+                            <label class="filter-checkbox">
+                                <input type="checkbox" id="filter-incidents" checked>
+                                <span class="checkbox-custom incidents"></span>
+                                <span class="filter-label">Incidents</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trends Tab Content -->
+            <div class="tab-content" id="trends-tab">
+                <div class="trends-container">
+                    <h2>Seattle Tent Mapper Trends</h2>
+                    <div class="charts-grid">
+                        <div class="chart-card">
+                            <h3>Current Marker Counts</h3>
+                            <canvas id="markerCountChart"></canvas>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Status Distribution</h3>
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="stats-summary">
+                        <div class="stat-card">
+                            <span class="stat-value" id="total-markers">0</span>
+                            <span class="stat-label">Total Markers</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="total-tents-stat">0</span>
+                            <span class="stat-label">Tents</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="total-rvs-stat">0</span>
+                            <span class="stat-label">RVs</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="total-encampments-stat">0</span>
+                            <span class="stat-label">Encampments</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar (Marker Details) -->
+            <aside class="sidebar sidebar-right hidden" id="right-sidebar">
+                <div class="sidebar-content">
+                    <div class="sidebar-header">
+                        <h3 id="detail-title">Marker Details</h3>
+                        <button class="close-sidebar" id="close-right-sidebar">&times;</button>
+                    </div>
+                    <div class="marker-details" id="marker-details">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </aside>
+        </main>
 
         <!-- Loading Indicator -->
         <div id="loading" class="hidden">
@@ -155,24 +310,12 @@
         </div>
     </div>
 
-    <!-- Modal for Tent Details -->
-    <div id="detail-modal" class="modal hidden">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div id="tent-details">
-                <!-- Populated dynamically -->
-            </div>
-        </div>
-    </div>
-
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <!-- Firebase SDK -->
-    <script type="module" src="js/firebase-config.js?v=2"></script>
-    <script type="module" src="js/map.js?v=2"></script>
-    <script type="module" src="js/tents.js?v=2"></script>
-    <script type="module" src="js/voting.js?v=2"></script>
-</body>
-</html>
-
+    <script type="module" src="js/firebase-config.js?v=3"></script>
+    <script type="module" src="js/map.js?v=3"></script>
+    <script type="module" src="js/tents.js?v=3"></script>
+    <script type="module" src="js/voting.js?v=3"></script>
+    <script type="module" src="js/ui.js?v=3"></script>

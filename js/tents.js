@@ -106,8 +106,9 @@ async function getRecaptchaToken() {
 async function submitMarker(e) {
     e.preventDefault();
     
+    // Verify location and type are set (they should be set by showMarkerModal)
     if (!currentPendingLocation || !currentMarkerType) {
-        alert('No location or type selected');
+        console.error('No location or type selected - this should not happen');
         return;
     }
     
@@ -170,8 +171,10 @@ async function submitMarker(e) {
             console.log('Photo uploaded:', photoURL);
         }
         
+        // Save the type before hiding modal (which clears it)
+        const typeLabel = currentMarkerType.charAt(0).toUpperCase() + currentMarkerType.slice(1);
         hideMarkerModal();
-        alert(`${currentMarkerType.charAt(0).toUpperCase() + currentMarkerType.slice(1)} reported successfully!`);
+        alert(`${typeLabel} reported successfully!`);
         
     } catch (error) {
         console.error('Error submitting marker:', error);
@@ -217,186 +220,6 @@ function handlePhotoSelect(e) {
         preview.innerHTML = `<img src="${e.target.result}" alt="Photo preview">`;
     };
     reader.readAsDataURL(file);
-}
-
-// Create popup content for marker
-export function createPopupContent(marker) {
-    const container = document.createElement('div');
-    
-    // Type label
-    const typeLabel = marker.type ? marker.type.charAt(0).toUpperCase() + marker.type.slice(1) : 'Tent';
-    
-    // Status badge (not for incidents)
-    let statusBadge = '';
-    if (marker.type !== 'incident') {
-        statusBadge = `<span class="popup-status ${marker.status}">${marker.status}</span>`;
-    }
-    
-    // Format date
-    let dateStr = 'Just now';
-    if (marker.createdAt && marker.createdAt.toDate) {
-        const date = marker.createdAt.toDate();
-        dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-    }
-    
-    // Type-specific info
-    let typeInfo = '';
-    switch(marker.type) {
-        case 'rv':
-            typeInfo = `<strong>Side of Street:</strong> ${marker.sideOfStreet || 'N/A'}<br>`;
-            break;
-        case 'encampment':
-            typeInfo = `<strong>Approx. Tents:</strong> ${marker.tentCount || 'N/A'}<br>`;
-            break;
-        case 'incident':
-            const incidentTypes = {
-                'public-intoxication': 'Public Intoxication',
-                'public-illicit-substance-use': 'Public Illicit Substance Use',
-                'noise-disturbance': 'Noise Disturbance',
-                'altercation': 'Altercation',
-                'theft': 'Theft'
-            };
-            typeInfo = `<strong>Type:</strong> ${incidentTypes[marker.incidentType] || marker.incidentType}<br>`;
-            if (marker.incidentDateTime) {
-                const incidentDate = marker.incidentDateTime.toDate ? marker.incidentDateTime.toDate() : new Date(marker.incidentDateTime);
-                typeInfo += `<strong>Incident Time:</strong> ${incidentDate.toLocaleDateString()} ${incidentDate.toLocaleTimeString()}<br>`;
-            }
-            break;
-    }
-    
-    // Vote counts (only for non-incidents)
-    let votesSection = '';
-    if (marker.type !== 'incident') {
-        const votesYes = marker.votesYes || 0;
-        const votesNo = marker.votesNo || 0;
-        votesSection = `
-            <div class="popup-meta">
-                <strong>Votes:</strong> ✅ ${votesYes} | ❌ ${votesNo}
-            </div>
-            <div class="popup-votes">
-                <button class="vote-btn yes" data-marker-id="${marker.id}" data-vote="yes">
-                    Still There
-                </button>
-                <button class="vote-btn no" data-marker-id="${marker.id}" data-vote="no">
-                    Not There
-                </button>
-            </div>
-        `;
-    }
-    
-    container.innerHTML = `
-        <div class="popup-header">
-            <strong>${typeLabel}</strong>
-            ${statusBadge}
-        </div>
-        <div class="popup-meta">
-            <strong>Reported:</strong> ${dateStr}<br>
-            ${typeInfo}
-        </div>
-        ${votesSection}
-    `;
-    
-    return container;
-}
-
-// Show marker details modal
-export async function showMarkerDetails(markerId) {
-    showLoading(true);
-    
-    try {
-        const markerDoc = await getDoc(doc(db, 'markers', markerId));
-        if (!markerDoc.exists()) {
-            alert('Marker not found');
-            return;
-        }
-        
-        const marker = { id: markerDoc.id, ...markerDoc.data() };
-        const modal = document.getElementById('detail-modal');
-        const detailsDiv = document.getElementById('tent-details');
-        
-        // Format date
-        let dateStr = 'Just now';
-        if (marker.createdAt && marker.createdAt.toDate) {
-            const date = marker.createdAt.toDate();
-            dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-        }
-        
-        // Type-specific details
-        let typeDetails = '';
-        switch(marker.type) {
-            case 'rv':
-                typeDetails = `<p><strong>Side of Street:</strong> ${marker.sideOfStreet || 'N/A'}</p>`;
-                break;
-            case 'encampment':
-                typeDetails = `<p><strong>Approximate Number of Tents:</strong> ${marker.tentCount || 'N/A'}</p>`;
-                break;
-            case 'incident':
-                const incidentTypes = {
-                    'public-intoxication': 'Public Intoxication',
-                    'public-illicit-substance-use': 'Public Illicit Substance Use',
-                    'noise-disturbance': 'Noise Disturbance',
-                    'altercation': 'Altercation',
-                    'theft': 'Theft'
-                };
-                typeDetails = `<p><strong>Incident Type:</strong> ${incidentTypes[marker.incidentType] || marker.incidentType}</p>`;
-                if (marker.incidentDateTime) {
-                    const incidentDate = marker.incidentDateTime.toDate ? marker.incidentDateTime.toDate() : new Date(marker.incidentDateTime);
-                    typeDetails += `<p><strong>Incident Date & Time:</strong> ${incidentDate.toLocaleDateString()} ${incidentDate.toLocaleTimeString()}</p>`;
-                }
-                break;
-        }
-        
-        // Votes section (only for non-incidents)
-        let votesSection = '';
-        if (marker.type !== 'incident') {
-            votesSection = `
-                <div class="detail-section">
-                    <h3>Votes</h3>
-                    <div class="vote-count">
-                        <div class="vote-count-item yes">
-                            <div class="number">${marker.votesYes || 0}</div>
-                            <div class="label">Still There</div>
-                        </div>
-                        <div class="vote-count-item no">
-                            <div class="number">${marker.votesNo || 0}</div>
-                            <div class="label">Not There</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        const typeLabel = marker.type ? marker.type.charAt(0).toUpperCase() + marker.type.slice(1) : 'Tent';
-        const statusBadge = marker.type !== 'incident' ? `<span class="popup-status ${marker.status}">${marker.status}</span>` : '';
-        
-        detailsDiv.innerHTML = `
-            <div class="detail-section">
-                <h3>${typeLabel} ${statusBadge}</h3>
-                <p><strong>Reported:</strong> ${dateStr}</p>
-                <p><strong>Location:</strong> ${marker.latitude.toFixed(6)}, ${marker.longitude.toFixed(6)}</p>
-                ${typeDetails}
-            </div>
-            
-            ${votesSection}
-            
-            ${marker.photoUrls && marker.photoUrls.length > 0 ? `
-                <div class="detail-section">
-                    <h3>Photos</h3>
-                    <div class="detail-photos">
-                        ${marker.photoUrls.map(url => `<img src="${url}" alt="Marker photo">`).join('')}
-                    </div>
-                </div>
-            ` : ''}
-        `;
-        
-        modal.classList.remove('hidden');
-        
-    } catch (error) {
-        console.error('Error loading marker details:', error);
-        alert('Error loading marker details');
-    } finally {
-        showLoading(false);
-    }
 }
 
 // Initialize event listeners

@@ -1,6 +1,7 @@
 import { db } from './firebase-config.js';
 import { collection, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { showMarkerModal, createPopupContent } from './tents.js';
+import { showMarkerModal } from './tents.js';
+import { showMarkerDetailsSidebar, hideMarkerDetailsSidebar, filters } from './ui.js';
 
 // Seattle coordinates and boundaries
 const SEATTLE_CENTER = [47.6062, -122.3321];
@@ -31,18 +32,23 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 // Optional: Draw a subtle boundary rectangle to show the allowed area
-// Uncomment if you want users to see the boundary
-
 L.rectangle(SEATTLE_BOUNDS, {
-    color: '#667eea',
+    color: '#e85d04',
     weight: 2,
     fillOpacity: 0.02,
     dashArray: '5, 10'
 }).addTo(map);
 
-
-// Store markers
+// Store markers and their data
 export const markers = {};
+let markersData = {};
+
+// Current filter state
+let currentFilters = {
+    confirmed: true,
+    pending: true,
+    incidents: true
+};
 
 // Helper function to check if coordinates are within Seattle bounds
 function isWithinSeattle(lat, lng) {
@@ -117,6 +123,9 @@ let radialMenuActive = false;
 let currentCloseMenuHandler = null; // Track the current close handler
 
 map.on('click', (e) => {
+    // Close right sidebar when clicking on map
+    hideMarkerDetailsSidebar();
+    
     // Don't show menu if one is already active
     if (radialMenuActive) {
         return;
@@ -203,6 +212,54 @@ function hideRadialMenu() {
     }
 }
 
+// Check if marker should be visible based on filters
+function shouldShowMarker(markerData) {
+    const type = markerData.type || 'tent';
+    const status = markerData.status || 'pending';
+    
+    // Check incidents filter
+    if (type === 'incident') {
+        return currentFilters.incidents;
+    }
+    
+    // Check status filters
+    if (status === 'verified') {
+        return currentFilters.confirmed;
+    }
+    
+    if (status === 'pending') {
+        return currentFilters.pending;
+    }
+    
+    return true;
+}
+
+// Apply filters to all markers
+function applyFilters() {
+    Object.keys(markersData).forEach(id => {
+        const markerData = markersData[id];
+        const marker = markers[id];
+        
+        if (!marker) return;
+        
+        if (shouldShowMarker(markerData)) {
+            if (!map.hasLayer(marker)) {
+                marker.addTo(map);
+            }
+        } else {
+            if (map.hasLayer(marker)) {
+                map.removeLayer(marker);
+            }
+        }
+    });
+}
+
+// Listen for filter changes
+window.addEventListener('filtersChanged', (e) => {
+    currentFilters = e.detail;
+    applyFilters();
+});
+
 // Listen to Firestore updates
 function initializeMarkerListener() {
     const markersRef = collection(db, 'markers');
@@ -232,6 +289,9 @@ function updateMarker(markerData) {
         map.removeLayer(markers[markerData.id]);
     }
     
+    // Store marker data
+    markersData[markerData.id] = markerData;
+    
     // Don't show removed markers
     if (markerData.status === 'removed') {
         return;
@@ -246,13 +306,19 @@ function updateMarker(markerData) {
     const icon = iconSet[status] || iconSet.pending;
     const marker = L.marker([markerData.latitude, markerData.longitude], { icon });
     
-    // Add popup
-    const popupContent = createPopupContent(markerData);
-    marker.bindPopup(popupContent);
+    // Add click handler to show details in sidebar
+    marker.on('click', (e) => {
+        L.DomEvent.stopPropagation(e);
+        showMarkerDetailsSidebar(markerData);
+    });
     
-    // Add to map
-    marker.addTo(map);
+    // Store marker reference
     markers[markerData.id] = marker;
+    
+    // Add to map if should be visible
+    if (shouldShowMarker(markerData)) {
+        marker.addTo(map);
+    }
 }
 
 // Remove marker
@@ -261,12 +327,16 @@ function removeMarker(markerId) {
         map.removeLayer(markers[markerId]);
         delete markers[markerId];
     }
+    delete markersData[markerId];
 }
 
-// Update statistics
+// Update statistics (for backward compatibility)
 function updateStats() {
     const count = Object.keys(markers).length;
-    document.getElementById('tent-count').textContent = count;
+    const tentCountEl = document.getElementById('tent-count');
+    if (tentCountEl) {
+        tentCountEl.textContent = count;
+    }
 }
 
 // Initialize when DOM is ready
@@ -276,4 +346,3 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 export { pendingLocation };
-

@@ -7,32 +7,33 @@ class FirebaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // Get tents collection reference
-  CollectionReference get _tentsCollection => _firestore.collection('tents');
+  // Get markers collection reference (changed from 'tents' to 'markers' to match web app)
+  CollectionReference get _markersCollection => _firestore.collection('markers');
   CollectionReference get _votesCollection => _firestore.collection('votes');
 
-  // Stream of all tents
+  // Stream of all markers (tents)
   Stream<List<Tent>> getTentsStream() {
-    return _tentsCollection
+    return _markersCollection
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs
           .map((doc) => Tent.fromFirestore(doc))
-          .where((tent) => tent.status != 'removed') // Don't show removed tents
+          .where((tent) => tent.status != 'removed')
           .toList();
     });
   }
 
-  // Add a new tent
+  // Add a new tent/marker
   Future<String> addTent({
     required double latitude,
     required double longitude,
     String? photoPath,
   }) async {
     try {
-      // Create tent data
-      final tentData = {
+      // Create marker data (matching web app structure)
+      final markerData = {
+        'type': 'tent',  // Default to tent type
         'latitude': latitude,
         'longitude': longitude,
         'createdAt': FieldValue.serverTimestamp(),
@@ -46,7 +47,7 @@ class FirebaseService {
       };
 
       // Add to Firestore
-      final docRef = await _tentsCollection.add(tentData);
+      final docRef = await _markersCollection.add(markerData);
 
       // Upload photo if provided
       if (photoPath != null) {
@@ -63,11 +64,11 @@ class FirebaseService {
   }
 
   // Upload photo to Storage
-  Future<String> _uploadPhoto(String tentId, String filePath) async {
+  Future<String> _uploadPhoto(String markerId, String filePath) async {
     try {
       final file = File(filePath);
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final ref = _storage.ref().child('tent-photos/$tentId/$fileName');
+      final ref = _storage.ref().child('marker-photos/$markerId/$fileName');
 
       await ref.putFile(file);
       return await ref.getDownloadURL();
@@ -85,26 +86,26 @@ class FirebaseService {
     try {
       // Check if already voted
       final existingVote = await _votesCollection
-          .where('tentId', isEqualTo: tentId)
+          .where('markerId', isEqualTo: tentId)  // Changed to match web app
           .where('sessionId', isEqualTo: sessionId)
           .limit(1)
           .get();
 
       if (existingVote.docs.isNotEmpty) {
-        throw Exception('You have already voted on this tent');
+        throw Exception('You have already voted on this marker');
       }
 
-      // Record vote
+      // Record vote (matching web app structure)
       await _votesCollection.add({
-        'tentId': tentId,
+        'markerId': tentId,  // Changed to match web app
         'sessionId': sessionId,
         'vote': stillThere ? 'yes' : 'no',
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      // Update tent vote counts
-      final tentRef = _tentsCollection.doc(tentId);
-      await tentRef.update({
+      // Update marker vote counts
+      final markerRef = _markersCollection.doc(tentId);
+      await markerRef.update({
         stillThere ? 'votesYes' : 'votesNo': FieldValue.increment(1),
         'lastVerifiedAt': FieldValue.serverTimestamp(),
       });
@@ -113,10 +114,10 @@ class FirebaseService {
     }
   }
 
-  // Check if user has voted on a tent
+  // Check if user has voted on a marker
   Future<bool> hasVoted(String tentId, String sessionId) async {
     final vote = await _votesCollection
-        .where('tentId', isEqualTo: tentId)
+        .where('markerId', isEqualTo: tentId)  // Changed to match web app
         .where('sessionId', isEqualTo: sessionId)
         .limit(1)
         .get();
@@ -124,4 +125,3 @@ class FirebaseService {
     return vote.docs.isNotEmpty;
   }
 }
-
