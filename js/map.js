@@ -61,13 +61,13 @@ const markerIcons = {
     tent: {
         pending: L.divIcon({
             className: 'custom-marker',
-            html: '<div style="filter: hue-rotate(30deg) saturate(2); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="tent.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+            html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(30deg) saturate(2);"><img src="tent.png"></div>',
             iconSize: [40, 40],
             iconAnchor: [20, 40]
         }),
         verified: L.divIcon({
             className: 'custom-marker',
-            html: '<div style="filter: hue-rotate(350deg) saturate(1.5); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="tent.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+            html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(350deg) saturate(1.5);"><img src="tent.png"></div>',
             iconSize: [40, 40],
             iconAnchor: [20, 40]
         })
@@ -75,13 +75,13 @@ const markerIcons = {
     rv: {
         pending: L.divIcon({
             className: 'custom-marker',
-            html: '<div style="filter: hue-rotate(30deg) saturate(2); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="rv.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+            html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(30deg) saturate(2);"><img src="rv.png"></div>',
             iconSize: [40, 40],
             iconAnchor: [20, 40]
         }),
         verified: L.divIcon({
             className: 'custom-marker',
-            html: '<div style="filter: hue-rotate(350deg) saturate(1.5); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="rv.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+            html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(350deg) saturate(1.5);"><img src="rv.png"></div>',
             iconSize: [40, 40],
             iconAnchor: [20, 40]
         })
@@ -89,13 +89,13 @@ const markerIcons = {
     encampment: {
         pending: L.divIcon({
             className: 'custom-marker',
-            html: '<div style="filter: hue-rotate(30deg) saturate(2); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="encampment.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+            html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(30deg) saturate(2);"><img src="encampment.png"></div>',
             iconSize: [40, 40],
             iconAnchor: [20, 40]
         }),
         verified: L.divIcon({
             className: 'custom-marker',
-            html: '<div style="filter: hue-rotate(350deg) saturate(1.5); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="encampment.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+            html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(350deg) saturate(1.5);"><img src="encampment.png"></div>',
             iconSize: [40, 40],
             iconAnchor: [20, 40]
         })
@@ -103,13 +103,13 @@ const markerIcons = {
     incident: {
         pending: L.divIcon({
             className: 'custom-marker',
-            html: '<div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="incident.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+            html: '<div class="marker-icon-wrapper"><img src="incident.png"></div>',
             iconSize: [40, 40],
             iconAnchor: [20, 40]
         }),
         verified: L.divIcon({
             className: 'custom-marker',
-            html: '<div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><img src="incident.png" style="width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));"></div>',
+            html: '<div class="marker-icon-wrapper"><img src="incident.png"></div>',
             iconSize: [40, 40],
             iconAnchor: [20, 40]
         })
@@ -150,6 +150,25 @@ map.on('zoomstart', () => {
         hideRadialMenu();
     }
 });
+
+// Update marker scale on zoom
+function updateMarkerScale() {
+    const zoom = map.getZoom();
+    const baseZoom = 15;
+    
+    // Scale factor: 1.0 at zoom 15+, shrinks as you zoom out
+    // At zoom 10 (min), scale will be approx 0.4
+    let scale = 1.0;
+    if (zoom < baseZoom) {
+        scale = Math.max(0.3, zoom / baseZoom);
+    }
+    
+    document.documentElement.style.setProperty('--marker-scale', scale);
+}
+
+map.on('zoomend', updateMarkerScale);
+// Initial call
+updateMarkerScale();
 
 // Show radial menu at click position
 function showRadialMenu(x, y) {
