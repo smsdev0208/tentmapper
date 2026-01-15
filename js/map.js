@@ -253,6 +253,77 @@ function shouldShowMarker(markerData) {
     return true;
 }
 
+function toMarkerDate(value) {
+    if (!value) return null;
+    if (typeof value.toDate === 'function') {
+        return value.toDate();
+    }
+    return new Date(value);
+}
+
+function formatDurationAgo(date) {
+    if (!date) return 'Unknown';
+    const now = new Date();
+    let diff = now - date;
+    if (diff <= 0) return 'Just now';
+
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+
+    const hours = Math.floor(diff / 3600000);
+    if (hours < 24) return `${hours}h ago`;
+
+    const days = Math.floor(diff / 86400000);
+    if (days < 30) return `${days}d ago`;
+
+    const months = Math.floor(days / 30);
+    if (months < 12) return `${months}mo ago`;
+
+    const years = Math.floor(months / 12);
+    return `${years}y ago`;
+}
+
+function buildMarkerPopupContent(markerData) {
+    const type = markerData.type || 'tent';
+    const typeLabel = type === 'rv' ? 'RV' : type.charAt(0).toUpperCase() + type.slice(1);
+    const status = markerData.status || 'pending';
+    const statusText = status === 'verified' ? 'Confirmed' : 'Pending';
+    const statusClass = status === 'verified' ? 'confirmed' : 'pending';
+    
+    const createdDate = toMarkerDate(markerData.createdAt);
+    const createdDetails = createdDate
+        ? `${createdDate.toLocaleDateString()} ${createdDate.toLocaleTimeString()}`
+        : 'Unknown';
+    const durationText = createdDate ? formatDurationAgo(createdDate) : 'Unknown';
+
+    const photos = Array.isArray(markerData.photoUrls) ? markerData.photoUrls : [];
+    const firstPhoto = photos.length ? photos[0] : null;
+    const photoSection = firstPhoto ? `
+        <div class="marker-popup-photo">
+            <img src="${firstPhoto}" alt="${typeLabel} photo">
+        </div>
+    ` : '';
+
+    return `
+        <div class="marker-popup-content">
+            <div class="marker-popup-header">
+                <span class="marker-popup-type">${typeLabel}</span>
+                <span class="marker-popup-status ${statusClass}">${statusText}</span>
+            </div>
+            <div class="marker-popup-row">
+                <span class="marker-popup-label">Reported</span>
+                <span>${createdDetails}</span>
+            </div>
+            <div class="marker-popup-row">
+                <span class="marker-popup-label">Time on site</span>
+                <span>${durationText}</span>
+            </div>
+            ${photoSection}
+        </div>
+    `;
+}
+
 // Apply filters to all markers
 function applyFilters() {
     Object.keys(markersData).forEach(id => {
@@ -324,10 +395,19 @@ function updateMarker(markerData) {
     const iconSet = markerIcons[type] || markerIcons.tent;
     const icon = iconSet[status] || iconSet.pending;
     const marker = L.marker([markerData.latitude, markerData.longitude], { icon });
-    
-    // Add click handler to show details in sidebar
+
+    // Bind popup with marker details
+    const popupContent = buildMarkerPopupContent(markerData);
+    marker.bindPopup(popupContent, {
+        maxWidth: 280,
+        minWidth: 220,
+        className: 'marker-popup-wrapper'
+    });
+
+    // Add click handler to show details in sidebar and popup
     marker.on('click', (e) => {
         L.DomEvent.stopPropagation(e);
+        marker.openPopup();
         showMarkerDetailsSidebar(markerData);
     });
     

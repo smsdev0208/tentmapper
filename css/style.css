@@ -784,6 +784,76 @@ body {
     letter-spacing: 0.05em;
 }
 
+/* Map marker popup styles */
+.marker-popup-wrapper .leaflet-popup-content-wrapper {
+    background: #fff;
+    border-radius: 14px;
+    padding: 12px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);
+}
+
+.marker-popup-content {
+    font-family: 'DM Sans', sans-serif;
+    color: #0e0e0e;
+}
+
+.marker-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.35rem;
+    gap: 0.5rem;
+}
+
+.marker-popup-type {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.marker-popup-status {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+    text-transform: capitalize;
+}
+
+.marker-popup-status.pending {
+    background: #fff4cc;
+    color: #b76c00;
+}
+
+.marker-popup-status.confirmed {
+    background: #ffe9e6;
+    color: #9c0f20;
+}
+
+.marker-popup-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.79rem;
+    margin-bottom: 0.15rem;
+}
+
+.marker-popup-label {
+    font-weight: 600;
+    color: #5a5f65;
+    margin-right: 0.35rem;
+}
+
+.marker-popup-photo {
+    margin-top: 0.5rem;
+}
+
+.marker-popup-photo img {
+    width: 100%;
+    max-height: 160px;
+    border-radius: 10px;
+    object-fit: cover;
+    display: block;
+}
+
 /* Loading Indicator */
 #loading {
     position: fixed;
