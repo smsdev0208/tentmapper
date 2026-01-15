@@ -42,6 +42,7 @@ L.rectangle(SEATTLE_BOUNDS, {
 // Store markers and their data
 export const markers = {};
 let markersData = {};
+let mapPopupElement = null;
 
 // Current filter state
 let currentFilters = {
@@ -123,7 +124,8 @@ let radialMenuActive = false;
 let currentCloseMenuHandler = null; // Track the current close handler
 
 map.on('click', (e) => {
-    // Close right sidebar when clicking on map
+    // Close any popups and the right sidebar when clicking on map
+    hideMapPopup();
     hideMarkerDetailsSidebar();
     
     // Don't show menu if one is already active
@@ -146,10 +148,13 @@ map.on('click', (e) => {
 
 // Close radial menu when zooming
 map.on('zoomstart', () => {
+    hideMapPopup();
     if (radialMenuActive) {
         hideRadialMenu();
     }
 });
+
+map.on('movestart', hideMapPopup);
 
 // Update marker scale on zoom
 function updateMarkerScale() {
@@ -324,6 +329,32 @@ function buildMarkerPopupContent(markerData) {
     `;
 }
 
+function ensureMapPopupElement() {
+    if (!mapPopupElement) {
+        mapPopupElement = document.getElementById('map-popup');
+    }
+}
+
+function showMapPopup(markerData, latlng) {
+    ensureMapPopupElement();
+    if (!mapPopupElement || !latlng) return;
+
+    mapPopupElement.innerHTML = buildMarkerPopupContent(markerData);
+    const point = map.latLngToContainerPoint(latlng);
+    const size = map.getSize();
+    const clampedX = Math.max(16, Math.min(point.x, size.x - 16));
+    const clampedY = Math.max(16, Math.min(point.y, size.y - 16));
+    mapPopupElement.style.left = `${clampedX}px`;
+    mapPopupElement.style.top = `${clampedY}px`;
+    mapPopupElement.classList.remove('hidden');
+}
+
+function hideMapPopup() {
+    ensureMapPopupElement();
+    if (!mapPopupElement) return;
+    mapPopupElement.classList.add('hidden');
+}
+
 // Apply filters to all markers
 function applyFilters() {
     Object.keys(markersData).forEach(id => {
@@ -396,18 +427,10 @@ function updateMarker(markerData) {
     const icon = iconSet[status] || iconSet.pending;
     const marker = L.marker([markerData.latitude, markerData.longitude], { icon });
 
-    // Bind popup with marker details
-    const popupContent = buildMarkerPopupContent(markerData);
-    marker.bindPopup(popupContent, {
-        maxWidth: 280,
-        minWidth: 220,
-        className: 'marker-popup-wrapper'
-    });
-
-    // Add click handler to show details in sidebar and popup
+    // Add click handler to show details in sidebar and popup overlay
     marker.on('click', (e) => {
         L.DomEvent.stopPropagation(e);
-        marker.openPopup();
+        showMapPopup(markerData, e.latlng);
         showMarkerDetailsSidebar(markerData);
     });
     
@@ -440,6 +463,7 @@ function updateStats() {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+    ensureMapPopupElement();
     initializeMarkerListener();
     console.log('Map initialized and listening for marker updates');
 });
