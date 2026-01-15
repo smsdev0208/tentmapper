@@ -163,7 +163,7 @@ body {
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 320px;
+    width: 280px;
     background: var(--bg-card);
     z-index: 50;
     display: flex;
@@ -239,7 +239,6 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    width: 280px;
 }
 
 .sidebar-header {
@@ -1288,7 +1287,7 @@ body {
     }
     
     .sidebar-left.collapsed {
-        transform: translateX(-240px);
+        transform: translateX(-280px);
     }
     
     #map-container {
