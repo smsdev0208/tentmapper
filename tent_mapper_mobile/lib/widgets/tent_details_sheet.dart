@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../models/tent.dart';
 
-class TentDetailsSheet extends StatelessWidget {
+class TentDetailsSheet extends StatefulWidget {
   final Tent tent;
   final Function(bool stillThere) onVote;
 
@@ -10,6 +11,51 @@ class TentDetailsSheet extends StatelessWidget {
     required this.tent,
     required this.onVote,
   });
+
+  @override
+  State<TentDetailsSheet> createState() => _TentDetailsSheetState();
+}
+
+class _TentDetailsSheetState extends State<TentDetailsSheet> {
+  late Timer _timer;
+  String _timeUntilMidnight = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _updateTimeUntilMidnight();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _updateTimeUntilMidnight();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  void _updateTimeUntilMidnight() {
+    // Midnight PST is 8:00 AM UTC
+    // More reliably, let's just calculate next 12:00 AM local if we don't care about timezone strictly
+    // but the requirement said Midnight PST.
+    // PST is UTC-8. So Midnight PST is 8:00 UTC.
+    
+    DateTime pstNow = DateTime.now().toUtc().subtract(const Duration(hours: 8));
+    DateTime pstMidnight = DateTime(pstNow.year, pstNow.month, pstNow.day).add(const Duration(days: 1));
+    
+    Duration diff = pstMidnight.difference(pstNow);
+    
+    String hours = diff.inHours.toString().padLeft(2, '0');
+    String minutes = (diff.inMinutes % 60).toString().padLeft(2, '0');
+    String seconds = (diff.inSeconds % 60).toString().padLeft(2, '0');
+    
+    _timeUntilMidnight = '$hours:$minutes:$seconds';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,14 +90,14 @@ class TentDetailsSheet extends StatelessWidget {
               // Header with type and status
               Row(
                 children: [
-                  _TypeIcon(type: tent.type),
+                  _TypeIcon(type: widget.tent.type),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          tent.typeLabel,
+                          widget.tent.typeLabel,
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -60,7 +106,7 @@ class TentDetailsSheet extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'ID: ${tent.id.substring(0, 8)}...',
+                          'ID: ${widget.tent.id.substring(0, 8)}...',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.white.withOpacity(0.4),
@@ -69,7 +115,7 @@ class TentDetailsSheet extends StatelessWidget {
                       ],
                     ),
                   ),
-                  _StatusBadge(status: tent.status),
+                  _StatusBadge(status: widget.tent.status),
                 ],
               ),
               const SizedBox(height: 24),
@@ -86,53 +132,53 @@ class TentDetailsSheet extends StatelessWidget {
                     _InfoRow(
                       icon: Icons.calendar_today,
                       label: 'Reported',
-                      value: _formatDate(tent.createdAt),
+                      value: _formatDate(widget.tent.createdAt),
                     ),
                     const Divider(color: Colors.white10, height: 24),
                     _InfoRow(
                       icon: Icons.location_on,
                       label: 'Location',
-                      value: '${tent.latitude.toStringAsFixed(4)}, ${tent.longitude.toStringAsFixed(4)}',
+                      value: '${widget.tent.latitude.toStringAsFixed(4)}, ${widget.tent.longitude.toStringAsFixed(4)}',
                     ),
-                    if (tent.lastVerifiedAt != null) ...[
+                    if (widget.tent.lastVerifiedAt != null) ...[
                       const Divider(color: Colors.white10, height: 24),
                       _InfoRow(
                         icon: Icons.update,
                         label: 'Last Verified',
-                        value: _formatDate(tent.lastVerifiedAt!),
+                        value: _formatDate(widget.tent.lastVerifiedAt!),
                       ),
                     ],
                     // Type-specific info
-                    if (tent.sideOfStreet != null) ...[
+                    if (widget.tent.sideOfStreet != null) ...[
                       const Divider(color: Colors.white10, height: 24),
                       _InfoRow(
                         icon: Icons.signpost,
                         label: 'Side of Street',
-                        value: tent.sideOfStreet!,
+                        value: widget.tent.sideOfStreet!,
                       ),
                     ],
-                    if (tent.tentCount != null) ...[
+                    if (widget.tent.tentCount != null) ...[
                       const Divider(color: Colors.white10, height: 24),
                       _InfoRow(
                         icon: Icons.numbers,
                         label: 'Approx. Tents',
-                        value: tent.tentCount.toString(),
+                        value: widget.tent.tentCount.toString(),
                       ),
                     ],
-                    if (tent.incidentType != null) ...[
+                    if (widget.tent.incidentType != null) ...[
                       const Divider(color: Colors.white10, height: 24),
                       _InfoRow(
                         icon: Icons.warning,
                         label: 'Incident Type',
-                        value: _formatIncidentType(tent.incidentType!),
+                        value: _formatIncidentType(widget.tent.incidentType!),
                       ),
                     ],
-                    if (tent.incidentDateTime != null) ...[
+                    if (widget.tent.incidentDateTime != null) ...[
                       const Divider(color: Colors.white10, height: 24),
                       _InfoRow(
                         icon: Icons.access_time,
                         label: 'Incident Time',
-                        value: _formatDate(tent.incidentDateTime!),
+                        value: _formatDate(widget.tent.incidentDateTime!),
                       ),
                     ],
                   ],
@@ -140,25 +186,50 @@ class TentDetailsSheet extends StatelessWidget {
               ),
               
               // Vote section (hide for incidents)
-              if (!tent.isIncident) ...[
+              if (!widget.tent.isIncident) ...[
                 const SizedBox(height: 24),
                 
-                // Vote counts
-                Text(
-                  'Community Votes',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white.withOpacity(0.5),
-                    letterSpacing: 1.2,
-                  ),
+                // Voting Header with Countdown
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Community Votes',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white.withOpacity(0.5),
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    Text(
+                      _timeUntilMidnight,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFE85D04),
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
+                
+                // Voting Bar
+                _VotingBar(
+                  votesYes: widget.tent.votesYes,
+                  votesNo: widget.tent.votesNo,
+                  status: widget.tent.status,
+                ),
+                
+                const SizedBox(height: 20),
+                
+                // Vote counts
                 Row(
                   children: [
                     Expanded(
                       child: _VoteCountCard(
-                        count: tent.votesYes,
+                        count: widget.tent.votesYes,
                         label: 'Still There',
                         color: const Color(0xFF28A745),
                       ),
@@ -166,7 +237,7 @@ class TentDetailsSheet extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _VoteCountCard(
-                        count: tent.votesNo,
+                        count: widget.tent.votesNo,
                         label: 'Not There',
                         color: const Color(0xFFDC3545),
                       ),
@@ -181,7 +252,7 @@ class TentDetailsSheet extends StatelessWidget {
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () => onVote(true),
+                        onPressed: () => widget.onVote(true),
                         icon: const Icon(Icons.check_circle, size: 20),
                         label: const Text('Still There'),
                         style: ElevatedButton.styleFrom(
@@ -197,7 +268,7 @@ class TentDetailsSheet extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () => onVote(false),
+                        onPressed: () => widget.onVote(false),
                         icon: const Icon(Icons.cancel, size: 20),
                         label: const Text('Not There'),
                         style: ElevatedButton.styleFrom(
@@ -215,7 +286,7 @@ class TentDetailsSheet extends StatelessWidget {
               ],
               
               // Photos section
-              if (tent.photoUrls.isNotEmpty) ...[
+              if (widget.tent.photoUrls.isNotEmpty) ...[
                 const SizedBox(height: 24),
                 Text(
                   'Photos',
@@ -235,12 +306,12 @@ class TentDetailsSheet extends StatelessWidget {
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
                   ),
-                  itemCount: tent.photoUrls.length,
+                  itemCount: widget.tent.photoUrls.length,
                   itemBuilder: (context, index) {
                     return ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: Image.network(
-                        tent.photoUrls[index],
+                        widget.tent.photoUrls[index],
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
@@ -298,6 +369,73 @@ class TentDetailsSheet extends StatelessWidget {
       default:
         return type;
     }
+  }
+}
+
+class _VotingBar extends StatelessWidget {
+  final int votesYes;
+  final int votesNo;
+  final String status;
+
+  const _VotingBar({
+    required this.votesYes,
+    required this.votesNo,
+    required this.status,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final total = votesYes + votesNo;
+    final yesRatio = total > 0 ? votesYes / total : 0.5;
+    
+    String statusText = '';
+    if (status == 'pending') {
+      statusText = votesNo > votesYes 
+          ? 'No votes leading: Tent will not be added' 
+          : 'Yes votes leading: Tent will be added to map';
+    } else {
+      statusText = votesNo > votesYes 
+          ? 'No votes leading: Tent will be removed' 
+          : 'Yes votes leading: Tent will remain';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 10,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(5),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(5),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: (yesRatio * 100).toInt(),
+                  child: Container(color: const Color(0xFF28A745)),
+                ),
+                Expanded(
+                  flex: ((1 - yesRatio) * 100).toInt(),
+                  child: Container(color: const Color(0xFFDC3545)),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          statusText,
+          style: TextStyle(
+            fontSize: 12,
+            fontStyle: FontStyle.italic,
+            color: Colors.white.withOpacity(0.5),
+          ),
+        ),
+      ],
+    );
   }
 }
 

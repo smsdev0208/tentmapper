@@ -1,5 +1,5 @@
 import { db } from './firebase-config.js';
-import { doc, updateDoc, increment, collection, addDoc, query, where, getDocs, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { doc, updateDoc, increment, collection, addDoc, query, where, getDocs, getDoc, writeBatch, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 // Generate or retrieve session ID for vote tracking
 function getSessionId() {
@@ -106,4 +106,66 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Voting system initialized');
 });
 
-export { submitVote, hasUserVoted };
+// Process timed votes (end of day update)
+async function processTimedVotes() {
+    console.log('Starting timed votes processing...');
+    try {
+        const markersRef = collection(db, 'markers');
+        const snapshot = await getDocs(markersRef);
+        
+        const batch = writeBatch(db);
+        let updatedCount = 0;
+
+        for (const docSnap of snapshot.docs) {
+            const data = docSnap.data();
+            const markerId = docSnap.id;
+            
+            // Skip incidents and already removed markers
+            if (data.type === 'incident' || data.status === 'removed') continue;
+
+            const yes = data.votesYes || 0;
+            const no = data.votesNo || 0;
+            let newStatus = data.status;
+
+            if (data.status === 'pending') {
+                if (no > yes) {
+                    newStatus = 'removed';
+                } else {
+                    // ties (yes == no) or yes > no mean confirmed
+                    newStatus = 'verified';
+                }
+            } else if (data.status === 'verified') {
+                if (no > yes) {
+                    newStatus = 'removed';
+                }
+                // ties or yes > no mean it remains verified
+            }
+
+            // Update marker status and reset votes
+            const markerRef = doc(db, 'markers', markerId);
+            batch.update(markerRef, {
+                status: newStatus,
+                votesYes: 0,
+                votesNo: 0,
+                lastVerifiedAt: new Date()
+            });
+            updatedCount++;
+        }
+
+        // Wipe all votes from the 'votes' collection
+        const votesRef = collection(db, 'votes');
+        const votesSnapshot = await getDocs(votesRef);
+        votesSnapshot.docs.forEach(voteDoc => {
+            batch.delete(voteDoc.ref);
+        });
+
+        await batch.commit();
+        console.log(`Processed ${updatedCount} markers and cleared all votes.`);
+        return { success: true, count: updatedCount };
+    } catch (error) {
+        console.error('Error processing timed votes:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export { submitVote, hasUserVoted, processTimedVotes };

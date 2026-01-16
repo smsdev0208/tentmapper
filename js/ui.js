@@ -1,5 +1,6 @@
 import { db } from './firebase-config.js';
 import { collection, query, orderBy, onSnapshot, where, Timestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { processTimedVotes } from './voting.js';
 
 // UI State
 let currentTab = 'map';
@@ -30,7 +31,29 @@ document.addEventListener('DOMContentLoaded', () => {
     initFilters();
     initCharts();
     initNewsFeed();
+    initDevControls();
 });
+
+// Dev Controls
+function initDevControls() {
+    const devBtn = document.getElementById('dev-trigger-update');
+    if (devBtn) {
+        devBtn.addEventListener('click', async () => {
+            if (confirm('DEBUG: Are you sure you want to trigger the midnight voting update now? This will update marker statuses and WIPE all current votes.')) {
+                devBtn.disabled = true;
+                devBtn.textContent = 'Processing...';
+                const result = await processTimedVotes();
+                if (result.success) {
+                    alert(`Update successful! Processed ${result.count} markers.`);
+                } else {
+                    alert(`Update failed: ${result.error}`);
+                }
+                devBtn.disabled = false;
+                devBtn.textContent = 'Dev: Trigger Update';
+            }
+        });
+    }
+}
 
 // Tab Navigation
 function initTabs() {
@@ -391,6 +414,25 @@ function formatTimeAgo(date) {
     return `${days}d ago`;
 }
 
+// Get time until next midnight PST
+function getTimeUntilMidnightPST() {
+    const now = new Date();
+    // Convert to PST (Pacific Standard Time)
+    // PST is UTC-8
+    const pstNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    
+    const pstMidnight = new Date(pstNow);
+    pstMidnight.setHours(24, 0, 0, 0);
+    
+    const diff = pstMidnight - pstNow;
+    
+    const hours = Math.floor(diff / 3600000);
+    const minutes = Math.floor((diff % 3600000) / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
 // Show marker details in right sidebar
 export function showMarkerDetailsSidebar(marker) {
     const sidebar = document.getElementById('right-sidebar');
@@ -398,6 +440,11 @@ export function showMarkerDetailsSidebar(marker) {
     const titleEl = document.getElementById('detail-title');
     
     if (!sidebar || !detailsDiv) return;
+
+    // Clear any existing intervals
+    if (window.detailsInterval) {
+        clearInterval(window.detailsInterval);
+    }
     
     // Type label
     const typeLabel = marker.type ? marker.type.charAt(0).toUpperCase() + marker.type.slice(1) : 'Tent';
@@ -460,10 +507,34 @@ export function showMarkerDetailsSidebar(marker) {
     if (marker.type !== 'incident') {
         const votesYes = marker.votesYes || 0;
         const votesNo = marker.votesNo || 0;
+        const totalVotes = votesYes + votesNo;
+        const yesPercent = totalVotes > 0 ? (votesYes / totalVotes) * 100 : 50;
+        
+        let statusText = '';
+        if (marker.status === 'pending') {
+            statusText = votesNo > votesYes 
+                ? 'No votes leading: Tent will not be added' 
+                : 'Yes votes leading: Tent will be added to map';
+        } else {
+            statusText = votesNo > votesYes 
+                ? 'No votes leading: Tent will be removed' 
+                : 'Yes votes leading: Tent will remain';
+        }
+
         voteSection = `
             <div class="detail-section">
-                <h4>Voting</h4>
+                <div class="section-header">
+                    <h4>Voting</h4>
+                    <span class="countdown-timer" id="voting-countdown">${getTimeUntilMidnightPST()}</span>
+                </div>
                 <div class="vote-section">
+                    <div class="vote-bar-container">
+                        <div class="vote-bar">
+                            <div class="vote-bar-yes" style="width: ${yesPercent}%"></div>
+                            <div class="vote-bar-no" style="width: ${100 - yesPercent}%"></div>
+                        </div>
+                        <div class="vote-status-text">${statusText}</div>
+                    </div>
                     <div class="vote-counts">
                         <div class="vote-count yes">
                             <span class="vote-number">${votesYes}</span>
@@ -485,6 +556,16 @@ export function showMarkerDetailsSidebar(marker) {
                 </div>
             </div>
         `;
+        
+        // Update countdown live
+        window.detailsInterval = setInterval(() => {
+            const countdownEl = document.getElementById('voting-countdown');
+            if (countdownEl) {
+                countdownEl.textContent = getTimeUntilMidnightPST();
+            } else {
+                clearInterval(window.detailsInterval);
+            }
+        }, 1000);
     }
     
     // Photos section

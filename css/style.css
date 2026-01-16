@@ -622,6 +622,51 @@ body {
     padding: 1rem;
 }
 
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.countdown-timer {
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-family: monospace;
+    font-weight: 600;
+}
+
+.vote-bar-container {
+    margin-bottom: 1.25rem;
+}
+
+.vote-bar {
+    height: 8px;
+    display: flex;
+    border-radius: 4px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.1);
+}
+
+.vote-bar-yes {
+    background: var(--success);
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.vote-bar-no {
+    background: var(--danger);
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.vote-status-text {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    font-style: italic;
+}
+
 .vote-counts {
     display: flex;
     gap: 1rem;
@@ -1017,6 +1062,24 @@ body {
 
 .btn-secondary:hover {
     background: rgba(255,255,255,0.15);
+}
+
+.dev-group {
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+}
+
+.dev-btn {
+    font-size: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: #444;
+    border: 1px solid #666;
+}
+
+.dev-btn:hover {
+    background: #555;
+    border-color: #888;
 }
 
 /* Type-specific form fields */

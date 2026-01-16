@@ -34,6 +34,51 @@ class _MapScreenState extends State<MapScreen> {
   bool _showPending = true;
   bool _showIncidents = true;
 
+  Future<void> _triggerVotingUpdate() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF16213E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('DEBUG: Trigger Update?', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'Are you sure you want to trigger the midnight voting update now? This will update all statuses and WIPE current votes.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel', style: TextStyle(color: Colors.white.withOpacity(0.5))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Trigger Now'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() => _isLoading = true);
+      final result = await _firebaseService.processTimedVotes();
+      setState(() => _isLoading = false);
+
+      if (mounted) {
+        if (result['success']) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Update successful! Processed ${result['count']} markers.'),
+              backgroundColor: const Color(0xFF28A745),
+            ),
+          );
+        } else {
+          _showError('Update failed: ${result['error']}');
+        }
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -52,8 +97,9 @@ class _MapScreenState extends State<MapScreen> {
 
   List<Tent> get _filteredTents {
     return _tents.where((tent) {
-      // For now, treat all tents as non-incidents since Tent model doesn't have type
-      // This would need to be updated when the model supports types
+      if (tent.type == 'incident') {
+        return _showIncidents;
+      }
       if (tent.status == 'verified' && !_showConfirmed) return false;
       if (tent.status == 'pending' && !_showPending) return false;
       return true;
@@ -134,8 +180,6 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _addTent(LatLng point, {String? photoPath}) async {
-    setState(() => _isLoading = true);
-
     try {
       // Ask if user wants to add photo
       if (photoPath == null) {
@@ -202,11 +246,16 @@ class _MapScreenState extends State<MapScreen> {
         }
       }
 
+      // Now start loading only for the actual Firebase operations
+      setState(() => _isLoading = true);
+
       await _firebaseService.addTent(
         latitude: point.latitude,
         longitude: point.longitude,
         photoPath: photoPath,
-      );
+      ).timeout(const Duration(seconds: 30), onTimeout: () {
+        throw Exception('Operation timed out. Please check your connection.');
+      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -221,7 +270,9 @@ class _MapScreenState extends State<MapScreen> {
     } catch (e) {
       _showError('Failed to add tent: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -574,6 +625,16 @@ class _MapScreenState extends State<MapScreen> {
                       color: const Color(0xFF9B59B6),
                       value: _showIncidents,
                       onChanged: (v) => setState(() => _showIncidents = v),
+                    ),
+                    const Divider(color: Colors.white10),
+                    // Dev Trigger Button
+                    TextButton.icon(
+                      onPressed: _triggerVotingUpdate,
+                      icon: const Icon(Icons.bug_report, size: 18, color: Colors.orange),
+                      label: const Text(
+                        'Dev: Trigger Update',
+                        style: TextStyle(color: Colors.orange, fontSize: 13),
+                      ),
                     ),
                   ],
                 ),
