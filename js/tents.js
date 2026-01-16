@@ -1,5 +1,5 @@
 import { db, storage, RECAPTCHA_SITE_KEY } from './firebase-config.js';
-import { collection, addDoc, doc, getDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp, arrayUnion } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 
 let currentPendingLocation = null;
@@ -164,11 +164,17 @@ async function submitMarker(e) {
         const docRef = await addDoc(collection(db, 'markers'), markerData);
         console.log('Marker added successfully with ID:', docRef.id);
         
-        // Upload photo if selected
+        // Upload photo if selected and save URL to document
         if (selectedPhoto) {
             console.log('Uploading photo...');
             const photoURL = await uploadPhoto(selectedPhoto, docRef.id);
             console.log('Photo uploaded:', photoURL);
+            
+            // Update the document with the photo URL
+            await updateDoc(docRef, {
+                photoUrls: arrayUnion(photoURL)
+            });
+            console.log('Photo URL saved to document');
         }
         
         // Save the type before hiding modal (which clears it)

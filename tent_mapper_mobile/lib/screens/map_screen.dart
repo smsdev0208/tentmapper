@@ -164,14 +164,41 @@ class _MapScreenState extends State<MapScreen> {
         );
 
         if (addPhoto == true) {
-          final picker = ImagePicker();
-          final image = await picker.pickImage(
-            source: ImageSource.camera,
-            maxWidth: 1920,
-            maxHeight: 1080,
-            imageQuality: 85,
+          // Show options to take photo or choose from gallery
+          final imageSource = await showDialog<ImageSource>(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: const Color(0xFF16213E),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text('Choose Photo Source', style: TextStyle(color: Colors.white)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.camera_alt, color: Color(0xFFE85D04)),
+                    title: const Text('Take Photo', style: TextStyle(color: Colors.white)),
+                    onTap: () => Navigator.pop(context, ImageSource.camera),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.photo_library, color: Color(0xFFE85D04)),
+                    title: const Text('Choose from Gallery', style: TextStyle(color: Colors.white)),
+                    onTap: () => Navigator.pop(context, ImageSource.gallery),
+                  ),
+                ],
+              ),
+            ),
           );
-          photoPath = image?.path;
+
+          if (imageSource != null) {
+            final picker = ImagePicker();
+            final image = await picker.pickImage(
+              source: imageSource,
+              maxWidth: 1920,
+              maxHeight: 1080,
+              imageQuality: 85,
+            );
+            photoPath = image?.path;
+          }
         }
       }
 
