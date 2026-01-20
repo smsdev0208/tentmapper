@@ -479,6 +479,11 @@ function getTimeUntilMidnightPST() {
 
 // Show marker details in right sidebar
 export function showMarkerDetailsSidebar(marker) {
+    // Only show sidebar on map tab
+    if (currentTab !== 'map') {
+        return;
+    }
+    
     const sidebar = document.getElementById('right-sidebar');
     const detailsDiv = document.getElementById('marker-details');
     const titleEl = document.getElementById('detail-title');

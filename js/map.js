@@ -124,9 +124,8 @@ let radialMenuActive = false;
 let currentCloseMenuHandler = null; // Track the current close handler
 
 map.on('click', (e) => {
-    // Close any popups and the right sidebar when clicking on map
+    // Close any popups when clicking on map (but NOT the sidebar - marker clicks handle that)
     hideMapPopup();
-    hideMarkerDetailsSidebar();
     
     // Don't show menu if one is already active
     if (radialMenuActive) {
@@ -146,14 +145,14 @@ map.on('click', (e) => {
     showRadialMenu(e.originalEvent.clientX, e.originalEvent.clientY);
 });
 
-// Close radial menu when zooming
+// Close radial menu when zooming (but keep sidebar open)
 map.on('zoomstart', () => {
-    hideMapPopup();
     if (radialMenuActive) {
         hideRadialMenu();
     }
 });
 
+// Close popup on map move
 map.on('movestart', hideMapPopup);
 
 // Update marker scale on zoom - stop growing earlier (at zoom 13 instead of 15)
