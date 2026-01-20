@@ -124,7 +124,8 @@ let radialMenuActive = false;
 let currentCloseMenuHandler = null; // Track the current close handler
 
 map.on('click', (e) => {
-    // Close any popups and sidebar when clicking on map
+    // If the click was on the map background (not a marker)
+    // Close any popups and sidebar
     hideMapPopup();
     hideMarkerDetailsSidebar();
     
@@ -429,7 +430,10 @@ function updateMarker(markerData) {
 
     // Add click handler to show details in sidebar and popup overlay
     marker.on('click', (e) => {
-        L.DomEvent.stopPropagation(e);
+        // Prevent map click handler from firing
+        if (e.originalEvent) {
+            e.originalEvent.stopPropagation();
+        }
         showMapPopup(markerData, e.latlng);
         showMarkerDetailsSidebar(markerData);
     });

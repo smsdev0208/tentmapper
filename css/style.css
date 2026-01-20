@@ -153,7 +153,7 @@ body {
     display: none;
     flex: 1;
     position: relative;
-    z-index: 1;
+    z-index: 0;
 }
 
 .tab-content.active {
@@ -167,10 +167,10 @@ body {
     bottom: 0;
     width: 280px;
     background: var(--bg-card);
-    z-index: 10002;
+    z-index: 20000;
     display: flex;
     transition: transform 0.3s ease;
-    transform: translateZ(0); /* Force compositor layer */
+    transform: translateZ(1px); /* Force compositor layer */
 }
 
 .sidebar-left {
