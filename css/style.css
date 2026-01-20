@@ -165,7 +165,7 @@ body {
     bottom: 0;
     width: 280px;
     background: var(--bg-card);
-    z-index: 50;
+    z-index: 1001;
     display: flex;
     transition: transform 0.3s ease;
 }

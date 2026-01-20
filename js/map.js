@@ -124,8 +124,9 @@ let radialMenuActive = false;
 let currentCloseMenuHandler = null; // Track the current close handler
 
 map.on('click', (e) => {
-    // Close any popups when clicking on map (but NOT the sidebar - marker clicks handle that)
+    // Close any popups and sidebar when clicking on map
     hideMapPopup();
+    hideMarkerDetailsSidebar();
     
     // Don't show menu if one is already active
     if (radialMenuActive) {
