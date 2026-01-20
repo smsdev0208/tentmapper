@@ -11,7 +11,7 @@ let markerStats = {
     tents: 0,
     rvs: 0,
     encampments: 0,
-    incidents: 0,
+    structures: 0,
     pending: 0,
     verified: 0
 };
@@ -20,7 +20,7 @@ let markerStats = {
 export let filters = {
     confirmed: true,
     pending: true,
-    incidents: true
+    structures: true
 };
 
 // Initialize UI
@@ -80,6 +80,11 @@ function initTabs() {
             
             currentTab = tab;
             
+            // Hide marker details sidebar when switching away from map tab
+            if (tab !== 'map') {
+                hideMarkerDetailsSidebar();
+            }
+            
             // Refresh charts when trends tab is shown
             if (tab === 'trends') {
                 updateCharts();
@@ -135,7 +140,7 @@ function initHelpPopup() {
 function initFilters() {
     const filterConfirmed = document.getElementById('filter-confirmed');
     const filterPending = document.getElementById('filter-pending');
-    const filterIncidents = document.getElementById('filter-incidents');
+    const filterStructures = document.getElementById('filter-structures');
     
     if (filterConfirmed) {
         filterConfirmed.addEventListener('change', () => {
@@ -151,9 +156,9 @@ function initFilters() {
         });
     }
     
-    if (filterIncidents) {
-        filterIncidents.addEventListener('change', () => {
-            filters.incidents = filterIncidents.checked;
+    if (filterStructures) {
+        filterStructures.addEventListener('change', () => {
+            filters.structures = filterStructures.checked;
             window.dispatchEvent(new CustomEvent('filtersChanged', { detail: filters }));
         });
     }
@@ -168,7 +173,7 @@ function initCharts() {
         markerCountChart = new Chart(markerCountCtx, {
             type: 'bar',
             data: {
-                labels: ['Tents', 'RVs', 'Encampments', 'Incidents'],
+                labels: ['Tents', 'RVs', 'Encampments', 'Structures'],
                 datasets: [{
                     label: 'Count',
                     data: [0, 0, 0, 0],
@@ -176,13 +181,13 @@ function initCharts() {
                         'rgba(232, 93, 4, 0.8)',
                         'rgba(45, 90, 123, 0.8)',
                         'rgba(155, 89, 182, 0.8)',
-                        'rgba(220, 53, 69, 0.8)'
+                        'rgba(120, 120, 120, 0.8)'
                     ],
                     borderColor: [
                         'rgb(232, 93, 4)',
                         'rgb(45, 90, 123)',
                         'rgb(155, 89, 182)',
-                        'rgb(220, 53, 69)'
+                        'rgb(120, 120, 120)'
                     ],
                     borderWidth: 2,
                     borderRadius: 8
@@ -260,7 +265,7 @@ function updateCharts() {
             markerStats.tents,
             markerStats.rvs,
             markerStats.encampments,
-            markerStats.incidents
+            markerStats.structures
         ];
         markerCountChart.update();
     }
@@ -282,6 +287,41 @@ function updateCharts() {
 
 // News Feed
 function initNewsFeed() {
+    // Listen for news posts
+    const newsRef = collection(db, 'news');
+    const newsQuery = query(newsRef, orderBy('createdAt', 'desc'));
+    
+    onSnapshot(newsQuery, (newsSnapshot) => {
+        const newsList = [];
+        newsSnapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data.createdAt && data.createdAt.toDate) {
+                newsList.push({
+                    message: data.message,
+                    time: data.createdAt.toDate(),
+                    type: data.type || 'vote_update'
+                });
+            }
+        });
+        
+        // Display news items in the activity list
+        const activityList = document.getElementById('activity-list');
+        if (newsList.length > 0) {
+            const newsHTML = newsList.slice(0, 5).map(news => {
+                const timeStr = formatTimeAgo(news.time);
+                return `
+                    <div class="activity-item" style="border-left-color: #28a745;">
+                        <span class="time">${timeStr}</span>
+                        <div class="desc">${news.message}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            // We'll prepend news, then add regular activity below
+            activityList.setAttribute('data-news', newsHTML);
+        }
+    });
+    
     const markersRef = collection(db, 'markers');
     const q = query(markersRef, orderBy('createdAt', 'desc'));
     
@@ -293,11 +333,11 @@ function initNewsFeed() {
         let todayTents = 0;
         let todayRvs = 0;
         let todayEncampments = 0;
-        let todayIncidents = 0;
+        let todayStructures = 0;
         let totalTents = 0;
         let totalRvs = 0;
         let totalEncampments = 0;
-        let totalIncidents = 0;
+        let totalStructures = 0;
         let totalPending = 0;
         let totalVerified = 0;
         
@@ -319,8 +359,8 @@ function initNewsFeed() {
                 case 'encampment':
                     totalEncampments++;
                     break;
-                case 'incident':
-                    totalIncidents++;
+                case 'structure':
+                    totalStructures++;
                     break;
             }
             
@@ -342,8 +382,8 @@ function initNewsFeed() {
                         case 'encampment':
                             todayEncampments++;
                             break;
-                        case 'incident':
-                            todayIncidents++;
+                        case 'structure':
+                            todayStructures++;
                             break;
                     }
                 }
@@ -363,12 +403,14 @@ function initNewsFeed() {
         document.getElementById('today-tents').textContent = todayTents;
         document.getElementById('today-rvs').textContent = todayRvs;
         document.getElementById('today-encampments').textContent = todayEncampments;
-        document.getElementById('today-incidents').textContent = todayIncidents;
+        document.getElementById('today-structures').textContent = todayStructures;
         
         // Update recent activity list
         const activityList = document.getElementById('activity-list');
-        if (recentActivities.length > 0) {
-            activityList.innerHTML = recentActivities.map(activity => {
+        const newsHTML = activityList.getAttribute('data-news') || '';
+        
+        if (newsHTML || recentActivities.length > 0) {
+            const activitiesHTML = recentActivities.map(activity => {
                 const timeStr = formatTimeAgo(activity.time);
                 const typeLabel = activity.type.charAt(0).toUpperCase() + activity.type.slice(1);
                 return `
@@ -378,17 +420,19 @@ function initNewsFeed() {
                     </div>
                 `;
             }).join('');
+            
+            activityList.innerHTML = newsHTML + activitiesHTML;
         } else {
             activityList.innerHTML = '<p class="empty-state">No recent activity</p>';
         }
         
         // Update stats for charts
         markerStats = {
-            total: totalTents + totalRvs + totalEncampments + totalIncidents,
+            total: totalTents + totalRvs + totalEncampments + totalStructures,
             tents: totalTents,
             rvs: totalRvs,
             encampments: totalEncampments,
-            incidents: totalIncidents,
+            structures: totalStructures,
             pending: totalPending,
             verified: totalVerified
         };
@@ -476,35 +520,14 @@ export function showMarkerDetailsSidebar(marker) {
                 </div>
             `;
             break;
-        case 'incident':
-            const incidentTypes = {
-                'public-intoxication': 'Public Intoxication',
-                'public-illicit-substance-use': 'Public Illicit Substance Use',
-                'noise-disturbance': 'Noise Disturbance',
-                'altercation': 'Altercation',
-                'theft': 'Theft'
-            };
-            typeDetails = `
-                <div class="detail-row">
-                    <span class="detail-label">Incident Type</span>
-                    <span class="detail-value">${incidentTypes[marker.incidentType] || marker.incidentType}</span>
-                </div>
-            `;
-            if (marker.incidentDateTime) {
-                const incidentDate = marker.incidentDateTime.toDate ? marker.incidentDateTime.toDate() : new Date(marker.incidentDateTime);
-                typeDetails += `
-                    <div class="detail-row">
-                        <span class="detail-label">Incident Time</span>
-                        <span class="detail-value">${incidentDate.toLocaleDateString()} ${incidentDate.toLocaleTimeString()}</span>
-                    </div>
-                `;
-            }
+        case 'structure':
+            // No additional fields for structures
             break;
     }
     
-    // Vote section (only for non-incidents)
+    // Vote section (all types now have voting)
     let voteSection = '';
-    if (marker.type !== 'incident') {
+    if (true) {
         const votesYes = marker.votesYes || 0;
         const votesNo = marker.votesNo || 0;
         const totalVotes = votesYes + votesNo;
@@ -581,10 +604,8 @@ export function showMarkerDetailsSidebar(marker) {
         `;
     }
     
-    // Status badge
-    const statusBadge = marker.type !== 'incident' 
-        ? `<span class="status-badge ${marker.status}">${marker.status}</span>` 
-        : '';
+    // Status badge (all types have status now)
+    const statusBadge = `<span class="status-badge ${marker.status}">${marker.status}</span>`;
     
     detailsDiv.innerHTML = `
         <div class="detail-section">

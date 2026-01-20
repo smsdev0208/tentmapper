@@ -95,7 +95,7 @@ class _TodaySummary extends StatelessWidget {
               case 'encampment':
                 encampments++;
                 break;
-              case 'incident':
+              case 'structure':
                 incidents++;
                 break;
             }
@@ -129,7 +129,7 @@ class _TodaySummary extends StatelessWidget {
                   Expanded(child: _TallyItem(count: tents, label: 'Tents')),
                   Expanded(child: _TallyItem(count: rvs, label: 'RVs')),
                   Expanded(child: _TallyItem(count: encampments, label: 'Camps')),
-                  Expanded(child: _TallyItem(count: incidents, label: 'Incidents')),
+                  Expanded(child: _TallyItem(count: incidents, label: 'Structures')),
                 ],
               ),
             ],
@@ -243,14 +243,14 @@ class _ActivityItem extends StatelessWidget {
       'tent': const Color(0xFFE85D04),
       'rv': const Color(0xFF2D5A7B),
       'encampment': const Color(0xFF9B59B6),
-      'incident': const Color(0xFFDC3545),
+      'structure': const Color(0xFF787878),
     };
 
     final typeIcons = {
       'tent': Icons.home,
       'rv': Icons.directions_car,
       'encampment': Icons.holiday_village,
-      'incident': Icons.warning,
+      'structure': Icons.business,
     };
 
     final color = typeColors[type] ?? const Color(0xFFE85D04);

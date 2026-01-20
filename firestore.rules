@@ -26,19 +26,27 @@ service cloud.firestore {
       
       // Allow creation with required base fields
       allow create: if request.resource.data.keys().hasAll([
-        'type', 'latitude', 'longitude', 'createdAt', 'status', 'photoUrls'
+        'type', 'latitude', 'longitude', 'createdAt', 'status', 'photoUrls', 'votesYes', 'votesNo', 'votingEndsAt'
       ]) && request.resource.data.status == 'pending'
-         && (request.resource.data.type in ['tent', 'rv', 'encampment', 'incident'])
-         // Incidents don't have voting fields
-         && (request.resource.data.type == 'incident' || 
-             (request.resource.data.keys().hasAll(['votesYes', 'votesNo', 'votingEndsAt'])
-              && request.resource.data.votesYes == 0
-              && request.resource.data.votesNo == 0));
+         && (request.resource.data.type in ['tent', 'rv', 'encampment', 'structure'])
+         && request.resource.data.votesYes == 0
+         && request.resource.data.votesNo == 0;
       
       // Allow updates only to specific fields (voting and status)
       allow update: if request.resource.data.diff(resource.data)
         .affectedKeys().hasOnly(['votesYes', 'votesNo', 'lastVerifiedAt', 'status', 'photoUrls']);
     } 
+    
+    // News collection - track system updates
+    match /news/{newsId} {
+      // Anyone can read news
+      allow read: if true;
+      
+      // Only allow creation (for automated systems)
+      allow create: if request.resource.data.keys().hasAll([
+        'message', 'createdAt', 'type'
+      ]);
+    }
     
     // Votes collection - track individual votes
     match /votes/{voteId} {

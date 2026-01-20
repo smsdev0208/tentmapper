@@ -165,28 +165,12 @@ class _TentDetailsSheetState extends State<TentDetailsSheet> {
                         value: widget.tent.tentCount.toString(),
                       ),
                     ],
-                    if (widget.tent.incidentType != null) ...[
-                      const Divider(color: Colors.white10, height: 24),
-                      _InfoRow(
-                        icon: Icons.warning,
-                        label: 'Incident Type',
-                        value: _formatIncidentType(widget.tent.incidentType!),
-                      ),
-                    ],
-                    if (widget.tent.incidentDateTime != null) ...[
-                      const Divider(color: Colors.white10, height: 24),
-                      _InfoRow(
-                        icon: Icons.access_time,
-                        label: 'Incident Time',
-                        value: _formatDate(widget.tent.incidentDateTime!),
-                      ),
-                    ],
                   ],
                 ),
               ),
               
-              // Vote section (hide for incidents)
-              if (!widget.tent.isIncident) ...[
+              // Vote section (all types now have voting)
+              if (true) ...[
                 const SizedBox(height: 24),
                 
                 // Voting Header with Countdown
@@ -354,22 +338,6 @@ class _TentDetailsSheetState extends State<TentDetailsSheet> {
     return '${date.month}/${date.day}/${date.year}';
   }
   
-  String _formatIncidentType(String type) {
-    switch (type) {
-      case 'public-intoxication':
-        return 'Public Intoxication';
-      case 'public-illicit-substance-use':
-        return 'Public Illicit Substance Use';
-      case 'noise-disturbance':
-        return 'Noise Disturbance';
-      case 'altercation':
-        return 'Altercation';
-      case 'theft':
-        return 'Theft';
-      default:
-        return type;
-    }
-  }
 }
 
 class _VotingBar extends StatelessWidget {
@@ -458,9 +426,9 @@ class _TypeIcon extends StatelessWidget {
         icon = Icons.holiday_village;
         color = const Color(0xFF9B59B6);
         break;
-      case 'incident':
-        icon = Icons.warning;
-        color = const Color(0xFFDC3545);
+      case 'structure':
+        icon = Icons.business;
+        color = const Color(0xFF787878);
         break;
       default:
         icon = Icons.home;

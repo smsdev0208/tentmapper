@@ -470,8 +470,8 @@ body {
     border-color: var(--pending);
 }
 
-.checkbox-custom.incidents {
-    border-color: var(--incident);
+.checkbox-custom.structures {
+    border-color: #787878;
 }
 
 .filter-checkbox input:checked + .checkbox-custom {
@@ -488,9 +488,9 @@ body {
     border-color: var(--pending);
 }
 
-.filter-checkbox input:checked + .checkbox-custom.incidents {
-    background: var(--incident);
-    border-color: var(--incident);
+.filter-checkbox input:checked + .checkbox-custom.structures {
+    background: #787878;
+    border-color: #787878;
 }
 
 .filter-checkbox input:checked + .checkbox-custom::after {
@@ -517,10 +517,10 @@ body {
     margin-left: 0.4rem;
 }
 
-/* Marker Scaling */
+/* Marker Scaling - 25% smaller (40px -> 30px) */
 .marker-icon-wrapper {
-    width: 40px;
-    height: 40px;
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -835,7 +835,7 @@ body {
     pointer-events: auto;
     z-index: 2000;
     width: min(320px, 90%);
-    transform: translate(-50%, -100%);
+    transform: translate(-50%, calc(-100% - 15px));
     border-radius: 16px;
     transition: transform 0.15s ease;
 }

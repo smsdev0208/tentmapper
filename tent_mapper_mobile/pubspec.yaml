@@ -43,4 +43,7 @@ flutter:
   # Assets
   assets:
     - assets/images/tent.png
+    - assets/images/rv.png
+    - assets/images/encampment.png
+    - assets/images/structure.png
 

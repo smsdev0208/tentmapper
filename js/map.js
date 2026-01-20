@@ -48,7 +48,7 @@ let mapPopupElement = null;
 let currentFilters = {
     confirmed: true,
     pending: true,
-    incidents: true
+    structures: true
 };
 
 // Helper function to check if coordinates are within Seattle bounds
@@ -63,56 +63,56 @@ const markerIcons = {
         pending: L.divIcon({
             className: 'custom-marker',
             html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(30deg) saturate(2);"><img src="tent.png"></div>',
-            iconSize: [40, 40],
-            iconAnchor: [20, 40]
+            iconSize: [30, 30],
+            iconAnchor: [15, 30]
         }),
         verified: L.divIcon({
             className: 'custom-marker',
             html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(350deg) saturate(1.5);"><img src="tent.png"></div>',
-            iconSize: [40, 40],
-            iconAnchor: [20, 40]
+            iconSize: [30, 30],
+            iconAnchor: [15, 30]
         })
     },
     rv: {
         pending: L.divIcon({
             className: 'custom-marker',
             html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(30deg) saturate(2);"><img src="rv.png"></div>',
-            iconSize: [40, 40],
-            iconAnchor: [20, 40]
+            iconSize: [30, 30],
+            iconAnchor: [15, 30]
         }),
         verified: L.divIcon({
             className: 'custom-marker',
             html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(350deg) saturate(1.5);"><img src="rv.png"></div>',
-            iconSize: [40, 40],
-            iconAnchor: [20, 40]
+            iconSize: [30, 30],
+            iconAnchor: [15, 30]
         })
     },
     encampment: {
         pending: L.divIcon({
             className: 'custom-marker',
             html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(30deg) saturate(2);"><img src="encampment.png"></div>',
-            iconSize: [40, 40],
-            iconAnchor: [20, 40]
+            iconSize: [30, 30],
+            iconAnchor: [15, 30]
         }),
         verified: L.divIcon({
             className: 'custom-marker',
             html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(350deg) saturate(1.5);"><img src="encampment.png"></div>',
-            iconSize: [40, 40],
-            iconAnchor: [20, 40]
+            iconSize: [30, 30],
+            iconAnchor: [15, 30]
         })
     },
-    incident: {
+    structure: {
         pending: L.divIcon({
             className: 'custom-marker',
-            html: '<div class="marker-icon-wrapper"><img src="incident.png"></div>',
-            iconSize: [40, 40],
-            iconAnchor: [20, 40]
+            html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(30deg) saturate(2);"><img src="structure.png"></div>',
+            iconSize: [30, 30],
+            iconAnchor: [15, 30]
         }),
         verified: L.divIcon({
             className: 'custom-marker',
-            html: '<div class="marker-icon-wrapper"><img src="incident.png"></div>',
-            iconSize: [40, 40],
-            iconAnchor: [20, 40]
+            html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(350deg) saturate(1.5);"><img src="structure.png"></div>',
+            iconSize: [30, 30],
+            iconAnchor: [15, 30]
         })
     }
 };
@@ -156,16 +156,16 @@ map.on('zoomstart', () => {
 
 map.on('movestart', hideMapPopup);
 
-// Update marker scale on zoom
+// Update marker scale on zoom - stop growing earlier (at zoom 13 instead of 15)
 function updateMarkerScale() {
     const zoom = map.getZoom();
-    const baseZoom = 15;
+    const baseZoom = 13;  // Changed from 15 to stop growing earlier
     
-    // Scale factor: 1.0 at zoom 15+, shrinks as you zoom out
-    // At zoom 10 (min), scale will be approx 0.4
+    // Scale factor: 1.0 at zoom 13+, shrinks as you zoom out
+    // At zoom 10 (min), scale will be approx 0.77
     let scale = 1.0;
     if (zoom < baseZoom) {
-        scale = Math.max(0.3, zoom / baseZoom);
+        scale = Math.max(0.5, zoom / baseZoom);
     }
     
     document.documentElement.style.setProperty('--marker-scale', scale);
@@ -241,9 +241,9 @@ function shouldShowMarker(markerData) {
     const type = markerData.type || 'tent';
     const status = markerData.status || 'pending';
     
-    // Check incidents filter
-    if (type === 'incident') {
-        return currentFilters.incidents;
+    // Check structures filter
+    if (type === 'structure') {
+        return currentFilters.structures;
     }
     
     // Check status filters

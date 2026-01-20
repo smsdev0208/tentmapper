@@ -116,9 +116,6 @@ class Tent {
     };
   }
   
-  // Check if this is an incident type
-  bool get isIncident => type == 'incident';
-  
   // Get display name for type
   String get typeLabel {
     switch (type) {
@@ -126,8 +123,8 @@ class Tent {
         return 'RV';
       case 'encampment':
         return 'Encampment';
-      case 'incident':
-        return 'Incident';
+      case 'structure':
+        return 'Structure';
       default:
         return 'Tent';
     }

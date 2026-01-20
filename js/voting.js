@@ -1,5 +1,5 @@
 import { db } from './firebase-config.js';
-import { doc, updateDoc, increment, collection, addDoc, query, where, getDocs, getDoc, writeBatch, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { doc, updateDoc, increment, collection, addDoc, query, where, getDocs, getDoc, writeBatch, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 // Generate or retrieve session ID for vote tracking
 function getSessionId() {
@@ -27,18 +27,12 @@ async function hasUserVoted(markerId) {
 // Submit vote
 async function submitVote(markerId, vote) {
     try {
-        // First, check if this is an incident (incidents don't support voting)
+        // Check if marker exists
         const markerRef = doc(db, 'markers', markerId);
         const markerSnap = await getDoc(markerRef);
         
         if (!markerSnap.exists()) {
             alert('Marker not found');
-            return false;
-        }
-        
-        const markerData = markerSnap.data();
-        if (markerData.type === 'incident') {
-            alert('Incidents do not support voting');
             return false;
         }
         
@@ -115,13 +109,16 @@ async function processTimedVotes() {
         
         const batch = writeBatch(db);
         let updatedCount = 0;
+        let addedCount = 0;
+        let removedCount = 0;
 
         for (const docSnap of snapshot.docs) {
             const data = docSnap.data();
             const markerId = docSnap.id;
+            const oldStatus = data.status;
             
-            // Skip incidents and already removed markers
-            if (data.type === 'incident' || data.status === 'removed') continue;
+            // Skip already removed markers (all types now have voting)
+            if (data.status === 'removed') continue;
 
             const yes = data.votesYes || 0;
             const no = data.votesNo || 0;
@@ -133,10 +130,12 @@ async function processTimedVotes() {
                 } else {
                     // ties (yes == no) or yes > no mean confirmed
                     newStatus = 'verified';
+                    addedCount++;
                 }
             } else if (data.status === 'verified') {
                 if (no > yes) {
                     newStatus = 'removed';
+                    removedCount++;
                 }
                 // ties or yes > no mean it remains verified
             }
@@ -160,8 +159,19 @@ async function processTimedVotes() {
         });
 
         await batch.commit();
-        console.log(`Processed ${updatedCount} markers and cleared all votes.`);
-        return { success: true, count: updatedCount };
+        
+        // Create news post with update summary
+        const today = new Date();
+        const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
+        await addDoc(collection(db, 'news'), {
+            title: `Updates ${dateStr}`,
+            message: `+${addedCount} objects added, -${removedCount} objects removed`,
+            createdAt: serverTimestamp(),
+            type: 'vote_update'
+        });
+        
+        console.log(`Processed ${updatedCount} markers and cleared all votes. Added: ${addedCount}, Removed: ${removedCount}`);
+        return { success: true, count: updatedCount, added: addedCount, removed: removedCount };
     } catch (error) {
         console.error('Error processing timed votes:', error);
         return { success: false, error: error.message };

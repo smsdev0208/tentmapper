@@ -32,7 +32,7 @@ class _MapScreenState extends State<MapScreen> {
   // Filter states
   bool _showConfirmed = true;
   bool _showPending = true;
-  bool _showIncidents = true;
+  bool _showStructures = true;
 
   Future<void> _triggerVotingUpdate() async {
     final confirmed = await showDialog<bool>(
@@ -83,6 +83,15 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _loadTents();
+    
+    // Listen for map zoom changes to update marker sizes
+    _mapController.mapEventStream.listen((event) {
+      if (mounted) {
+        setState(() {
+          // Trigger rebuild to update marker sizes
+        });
+      }
+    });
   }
 
   void _loadTents() {
@@ -97,8 +106,8 @@ class _MapScreenState extends State<MapScreen> {
 
   List<Tent> get _filteredTents {
     return _tents.where((tent) {
-      if (tent.type == 'incident') {
-        return _showIncidents;
+      if (tent.type == 'structure') {
+        return _showStructures;
       }
       if (tent.status == 'verified' && !_showConfirmed) return false;
       if (tent.status == 'pending' && !_showPending) return false;
@@ -400,21 +409,54 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                 ],
               ),
-              // Tent markers
+              // Tent markers - dynamically sized based on zoom
               MarkerLayer(
                 markers: _filteredTents.map((tent) {
+                  // Get the correct image based on type
+                  String imagePath;
+                  switch (tent.type) {
+                    case 'rv':
+                      imagePath = 'assets/images/rv.png';
+                      break;
+                    case 'encampment':
+                      imagePath = 'assets/images/encampment.png';
+                      break;
+                    case 'structure':
+                      imagePath = 'assets/images/structure.png';
+                      break;
+                    default:
+                      imagePath = 'assets/images/tent.png';
+                  }
+                  
+                  // Calculate size based on zoom - stop growing past zoom 13
+                  final zoom = _mapController.camera.zoom;
+                  final baseSize = 30.0; // Smaller base size
+                  final maxZoom = 13.0;  // Stop growing at this zoom
+                  final minZoom = 10.0;
+                  
+                  double size;
+                  if (zoom >= maxZoom) {
+                    size = baseSize;
+                  } else if (zoom <= minZoom) {
+                    size = baseSize * 0.6;
+                  } else {
+                    // Scale between 0.6 and 1.0
+                    final scale = 0.6 + (0.4 * (zoom - minZoom) / (maxZoom - minZoom));
+                    size = baseSize * scale;
+                  }
+                  
                   return Marker(
                     point: LatLng(tent.latitude, tent.longitude),
-                    width: 40,
-                    height: 40,
+                    width: size,
+                    height: size,
                     child: GestureDetector(
                       onTap: () => _showTentDetails(tent),
                       child: ColorFiltered(
                         colorFilter: _getTentColorFilter(tent.status),
                         child: Image.asset(
-                          'assets/images/tent.png',
-                          width: 40,
-                          height: 40,
+                          imagePath,
+                          width: size,
+                          height: size,
                           fit: BoxFit.contain,
                         ),
                       ),
@@ -621,10 +663,10 @@ class _MapScreenState extends State<MapScreen> {
                       onChanged: (v) => setState(() => _showPending = v),
                     ),
                     _FilterCheckbox(
-                      label: 'Incidents',
-                      color: const Color(0xFF9B59B6),
-                      value: _showIncidents,
-                      onChanged: (v) => setState(() => _showIncidents = v),
+                      label: 'Structures',
+                      color: const Color(0xFF787878),
+                      value: _showStructures,
+                      onChanged: (v) => setState(() => _showStructures = v),
                     ),
                     const Divider(color: Colors.white10),
                     // Dev Trigger Button

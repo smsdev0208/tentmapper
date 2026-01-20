@@ -29,7 +29,7 @@ export function showMarkerModal(location, type) {
         tent: 'Report a Tent',
         rv: 'Report an RV',
         encampment: 'Report an Encampment',
-        incident: 'Report an Incident'
+        structure: 'Report a Structure'
     };
     modalTitle.textContent = titles[type] || 'Report a Marker';
     
@@ -54,20 +54,9 @@ export function showMarkerModal(location, type) {
         });
     }
     
-    // Hide photo upload for incidents (they still have it but we'll make it optional)
+    // Show photo upload for all types
     const photoGroup = document.getElementById('photo-group');
-    if (type === 'incident') {
-        photoGroup.classList.add('hidden');
-    } else {
-        photoGroup.classList.remove('hidden');
-    }
-    
-    // Set default datetime for incident
-    if (type === 'incident') {
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        document.getElementById('incident-datetime').value = now.toISOString().slice(0, 16);
-    }
+    photoGroup.classList.remove('hidden');
     
     modal.classList.remove('hidden');
 }
@@ -132,14 +121,12 @@ async function submitMarker(e) {
             recaptchaToken: recaptchaToken
         };
         
-        // Add voting fields for all except incidents
-        if (currentMarkerType !== 'incident') {
-            const votingEndsAt = new Date();
-            votingEndsAt.setHours(votingEndsAt.getHours() + 24);
-            markerData.votesYes = 0;
-            markerData.votesNo = 0;
-            markerData.votingEndsAt = votingEndsAt;
-        }
+        // Add voting fields for all types (structures now have voting too)
+        const votingEndsAt = new Date();
+        votingEndsAt.setHours(votingEndsAt.getHours() + 24);
+        markerData.votesYes = 0;
+        markerData.votesNo = 0;
+        markerData.votingEndsAt = votingEndsAt;
         
         // Add type-specific data
         switch(currentMarkerType) {
@@ -152,9 +139,8 @@ async function submitMarker(e) {
             case 'encampment':
                 markerData.tentCount = parseInt(document.getElementById('encampment-count').value);
                 break;
-            case 'incident':
-                markerData.incidentType = document.getElementById('incident-type').value;
-                markerData.incidentDateTime = new Date(document.getElementById('incident-datetime').value);
+            case 'structure':
+                // No additional fields
                 break;
         }
         
