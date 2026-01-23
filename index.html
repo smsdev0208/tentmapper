@@ -60,6 +60,7 @@
         <!-- Main Content Area -->
         <main class="main-content">
             <!-- Left Sidebar (News Feed) -->
+            <!--
             <aside class="sidebar sidebar-left collapsed" id="left-sidebar">
                 <div class="sidebar-toggle" id="left-sidebar-toggle">
                     <span class="toggle-icon">❯</span>
@@ -86,8 +87,8 @@
                                     <span class="tally-label">New Encampments</span>
                                 </div>
                                 <div class="tally-item">
-                                    <span class="tally-count" id="today-structures">0</span>
-                                    <span class="tally-label">New Structures</span>
+                                    <span class="tally-count" id="today-incidents">0</span>
+                                    <span class="tally-label">New Incidents</span>
                                 </div>
                             </div>
                         </div>
@@ -100,7 +101,8 @@
                     </div>
                 </div>
             </aside>
-
+        -->
+            
             <!-- Map Tab Content -->
             <div class="tab-content active" id="map-tab">
                 <!-- Map Container -->
@@ -142,15 +144,10 @@
                                 <span class="filter-label">Pending</span>
                             </label>
                             <label class="filter-checkbox">
-                                <input type="checkbox" id="filter-structures" checked>
-                                <span class="checkbox-custom structures"></span>
-                                <span class="filter-label">Structures</span>
+                                <input type="checkbox" id="filter-incidents" checked>
+                                <span class="checkbox-custom incidents"></span>
+                                <span class="filter-label">Incidents</span>
                             </label>
-                        </div>
-
-                        <!-- Dev Controls -->
-                        <div class="control-group dev-group">
-                            <button class="btn-primary dev-btn" id="dev-trigger-update" title="DEBUG: Trigger midnight update">Dev: Trigger Update</button>
                         </div>
                     </div>
                 </div>
@@ -238,10 +235,10 @@
                 <span>Encampment</span>
             </div>
         </div>
-        <div class="radial-menu-item" data-type="structure" data-position="bottom-right">
+        <div class="radial-menu-item" data-type="incident" data-position="bottom-right">
             <div class="radial-menu-content">
-                <img src="structure.png" alt="Structure">
-                <span>Structure</span>
+                <img src="incident.png" alt="Incident">
+                <span>Incident</span>
             </div>
         </div>
     </div>
@@ -282,8 +279,24 @@
                     </div>
                 </div>
                 
-                <!-- Structure specific fields (none) -->
-                <div id="structure-fields" class="type-specific-fields hidden"></div>
+                <!-- Incident specific fields -->
+                <div id="incident-fields" class="type-specific-fields hidden">
+                    <div class="form-group">
+                        <label for="incident-type">Incident Type:</label>
+                        <select id="incident-type" data-required="true">
+                            <option value="">Select type...</option>
+                            <option value="public-intoxication">Public Intoxication</option>
+                            <option value="public-illicit-substance-use">Public Illicit Substance Use</option>
+                            <option value="noise-disturbance">Noise Disturbance</option>
+                            <option value="altercation">Altercation</option>
+                            <option value="theft">Theft</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="incident-datetime">Incident Date & Time:</label>
+                        <input type="datetime-local" id="incident-datetime" data-required="true">
+                    </div>
+                </div>
                 
                 <!-- Photo upload (for all except hidden for incidents in JS) -->
                 <div id="photo-group" class="form-group">
