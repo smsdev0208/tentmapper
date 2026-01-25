@@ -203,6 +203,16 @@ function initCharts() {
     const markerCountCtx = document.getElementById('markerCountChart');
     const statusCtx = document.getElementById('statusChart');
     
+    // Destroy existing charts if they exist
+    if (markerCountChart) {
+        markerCountChart.destroy();
+        markerCountChart = null;
+    }
+    if (statusChart) {
+        statusChart.destroy();
+        statusChart = null;
+    }
+    
     if (markerCountCtx) {
         markerCountChart = new Chart(markerCountCtx, {
             type: 'bar',
@@ -340,7 +350,7 @@ function initNewsFeed() {
         
         // Display news items in the activity list
         const activityList = document.getElementById('activity-list');
-        if (newsList.length > 0) {
+        if (activityList && newsList.length > 0) {
             const newsHTML = newsList.slice(0, 5).map(news => {
                 const timeStr = formatTimeAgo(news.time);
                 return `
@@ -433,31 +443,38 @@ function initNewsFeed() {
             }
         });
         
-        // Update daily tally
-        document.getElementById('today-tents').textContent = todayTents;
-        document.getElementById('today-rvs').textContent = todayRvs;
-        document.getElementById('today-encampments').textContent = todayEncampments;
-        document.getElementById('today-structures').textContent = todayStructures;
+        // Update daily tally (only if elements exist)
+        const todayTentsEl = document.getElementById('today-tents');
+        const todayRvsEl = document.getElementById('today-rvs');
+        const todayEncampmentsEl = document.getElementById('today-encampments');
+        const todayStructuresEl = document.getElementById('today-structures');
+        
+        if (todayTentsEl) todayTentsEl.textContent = todayTents;
+        if (todayRvsEl) todayRvsEl.textContent = todayRvs;
+        if (todayEncampmentsEl) todayEncampmentsEl.textContent = todayEncampments;
+        if (todayStructuresEl) todayStructuresEl.textContent = todayStructures;
         
         // Update recent activity list
         const activityList = document.getElementById('activity-list');
-        const newsHTML = activityList.getAttribute('data-news') || '';
-        
-        if (newsHTML || recentActivities.length > 0) {
-            const activitiesHTML = recentActivities.map(activity => {
-                const timeStr = formatTimeAgo(activity.time);
-                const typeLabel = activity.type.charAt(0).toUpperCase() + activity.type.slice(1);
-                return `
-                    <div class="activity-item">
-                        <span class="time">${timeStr}</span>
-                        <div class="desc">New ${typeLabel} reported</div>
-                    </div>
-                `;
-            }).join('');
+        if (activityList) {
+            const newsHTML = activityList.getAttribute('data-news') || '';
             
-            activityList.innerHTML = newsHTML + activitiesHTML;
-        } else {
-            activityList.innerHTML = '<p class="empty-state">No recent activity</p>';
+            if (newsHTML || recentActivities.length > 0) {
+                const activitiesHTML = recentActivities.map(activity => {
+                    const timeStr = formatTimeAgo(activity.time);
+                    const typeLabel = activity.type.charAt(0).toUpperCase() + activity.type.slice(1);
+                    return `
+                        <div class="activity-item">
+                            <span class="time">${timeStr}</span>
+                            <div class="desc">New ${typeLabel} reported</div>
+                        </div>
+                    `;
+                }).join('');
+                
+                activityList.innerHTML = newsHTML + activitiesHTML;
+            } else {
+                activityList.innerHTML = '<p class="empty-state">No recent activity</p>';
+            }
         }
         
         // Update stats for charts
