@@ -3,7 +3,8 @@ import { collection, query, orderBy, onSnapshot, where, Timestamp } from 'https:
 
 // Cloud Function URL - Update this after deploying Cloud Functions
 // Get the URL from: Firebase Console > Functions > processVotes > Trigger URL
-const PROCESS_VOTES_FUNCTION_URL = 'YOUR_CLOUD_FUNCTION_URL_HERE';
+const PROCESS_VOTES_FUNCTION_URL = 'https://us-central1-tent-mapper.cloudfunctions.net/processVotes';
+
 
 // UI State
 let currentTab = 'map';
