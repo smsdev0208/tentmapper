@@ -1,5 +1,5 @@
-import { db, storage, RECAPTCHA_SITE_KEY } from './firebase-config.js';
-import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp, arrayUnion } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { db, storage, RECAPTCHA_SITE_KEY, ensureAuthenticated } from './firebase-config.js';
+import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp, arrayUnion, query, where, getDocs, Timestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 
 let currentPendingLocation = null;
@@ -91,6 +91,79 @@ async function getRecaptchaToken() {
     });
 }
 
+// Check user's submission count for today
+async function checkSubmissionLimit(userId) {
+    try {
+        // Get today's date at midnight
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const userSubmissionsRef = collection(db, 'userSubmissions');
+        const q = query(userSubmissionsRef,
+            where('userId', '==', userId),
+            where('date', '>=', Timestamp.fromDate(today))
+        );
+        
+        const snapshot = await getDocs(q);
+        
+        if (snapshot.empty) {
+            return { allowed: true, count: 0 };
+        }
+        
+        // Sum up all submission counts for today
+        let totalCount = 0;
+        snapshot.docs.forEach(docSnap => {
+            totalCount += docSnap.data().count || 0;
+        });
+        
+        return {
+            allowed: totalCount < 10,
+            count: totalCount
+        };
+    } catch (error) {
+        console.error('Error checking submission limit:', error);
+        // On error, allow the submission (fail open)
+        return { allowed: true, count: 0 };
+    }
+}
+
+// Increment user's submission count for today
+async function incrementSubmissionCount(userId) {
+    try {
+        // Get today's date at midnight for consistent grouping
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const userSubmissionsRef = collection(db, 'userSubmissions');
+        const q = query(userSubmissionsRef,
+            where('userId', '==', userId),
+            where('date', '>=', Timestamp.fromDate(today))
+        );
+        
+        const snapshot = await getDocs(q);
+        
+        if (snapshot.empty) {
+            // Create new submission record for today
+            await addDoc(userSubmissionsRef, {
+                userId: userId,
+                date: Timestamp.fromDate(today),
+                count: 1,
+                createdAt: serverTimestamp()
+            });
+        } else {
+            // Update existing record
+            const docRef = snapshot.docs[0].ref;
+            const currentCount = snapshot.docs[0].data().count || 0;
+            await updateDoc(docRef, {
+                count: currentCount + 1
+            });
+        }
+    } catch (error) {
+        console.error('Error incrementing submission count:', error);
+        // Don't throw - allow submission to continue even if tracking fails
+    }
+}
+
 // Submit new marker
 async function submitMarker(e) {
     e.preventDefault();
@@ -104,6 +177,22 @@ async function submitMarker(e) {
     showLoading(true);
     
     try {
+        // Ensure user is authenticated
+        const user = await ensureAuthenticated();
+        if (!user) {
+            alert('Authentication required. Please refresh the page and try again.');
+            showLoading(false);
+            return;
+        }
+        
+        // Check submission limit
+        const submissionCheck = await checkSubmissionLimit(user.uid);
+        if (!submissionCheck.allowed) {
+            alert(`You have reached the daily limit of 10 submissions. You have submitted ${submissionCheck.count} markers today. Please try again tomorrow.`);
+            showLoading(false);
+            return;
+        }
+        
         // Get reCAPTCHA token
         console.log('Getting reCAPTCHA token...');
         const recaptchaToken = await getRecaptchaToken();
@@ -118,7 +207,8 @@ async function submitMarker(e) {
             lastVerifiedAt: serverTimestamp(),
             status: 'pending',
             photoUrls: [],
-            recaptchaToken: recaptchaToken
+            recaptchaToken: recaptchaToken,
+            submittedBy: user.uid
         };
         
         // Add voting fields for all types (structures now have voting too)
@@ -150,6 +240,9 @@ async function submitMarker(e) {
         const docRef = await addDoc(collection(db, 'markers'), markerData);
         console.log('Marker added successfully with ID:', docRef.id);
         
+        // Increment user's submission count
+        await incrementSubmissionCount(user.uid);
+        
         // Upload photo if selected and save URL to document
         if (selectedPhoto) {
             console.log('Uploading photo...');
@@ -165,8 +258,9 @@ async function submitMarker(e) {
         
         // Save the type before hiding modal (which clears it)
         const typeLabel = currentMarkerType.charAt(0).toUpperCase() + currentMarkerType.slice(1);
+        const remainingSubmissions = 10 - (submissionCheck.count + 1);
         hideMarkerModal();
-        alert(`${typeLabel} reported successfully!`);
+        alert(`${typeLabel} reported successfully! You have ${remainingSubmissions} submissions remaining today.`);
         
     } catch (error) {
         console.error('Error submitting marker:', error);

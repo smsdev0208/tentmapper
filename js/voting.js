@@ -1,23 +1,12 @@
-import { db } from './firebase-config.js';
+import { db, ensureAuthenticated } from './firebase-config.js';
 import { doc, updateDoc, increment, collection, addDoc, query, where, getDocs, getDoc, writeBatch, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
-// Generate or retrieve session ID for vote tracking
-function getSessionId() {
-    let sessionId = localStorage.getItem('tent-mapper-session');
-    if (!sessionId) {
-        sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('tent-mapper-session', sessionId);
-    }
-    return sessionId;
-}
-
 // Check if user has already voted on this marker
-async function hasUserVoted(markerId) {
-    const sessionId = getSessionId();
+async function hasUserVoted(markerId, userId) {
     const votesRef = collection(db, 'votes');
     const q = query(votesRef, 
         where('markerId', '==', markerId),
-        where('sessionId', '==', sessionId)
+        where('userId', '==', userId)
     );
     
     const snapshot = await getDocs(q);
@@ -27,6 +16,13 @@ async function hasUserVoted(markerId) {
 // Submit vote
 async function submitVote(markerId, vote) {
     try {
+        // Ensure user is authenticated
+        const user = await ensureAuthenticated();
+        if (!user) {
+            alert('Authentication required. Please refresh the page and try again.');
+            return false;
+        }
+        
         // Check if marker exists
         const markerRef = doc(db, 'markers', markerId);
         const markerSnap = await getDoc(markerRef);
@@ -37,27 +33,25 @@ async function submitVote(markerId, vote) {
         }
         
         // Check if already voted
-        const alreadyVoted = await hasUserVoted(markerId);
+        const alreadyVoted = await hasUserVoted(markerId, user.uid);
         if (alreadyVoted) {
             alert('You have already voted on this marker today');
             return false;
         }
         
-        const sessionId = getSessionId();
-        
         // Record vote
         await addDoc(collection(db, 'votes'), {
             markerId: markerId,
-            sessionId: sessionId,
+            userId: user.uid,
             vote: vote,
-            timestamp: new Date()
+            timestamp: serverTimestamp()
         });
         
         // Update marker vote counts
         const updateField = vote === 'yes' ? 'votesYes' : 'votesNo';
         await updateDoc(markerRef, {
             [updateField]: increment(1),
-            lastVerifiedAt: new Date()
+            lastVerifiedAt: serverTimestamp()
         });
         
         alert('Vote recorded! Thank you for helping keep the map accurate.');
@@ -65,7 +59,11 @@ async function submitVote(markerId, vote) {
         
     } catch (error) {
         console.error('Error submitting vote:', error);
-        alert('Error submitting vote. Please try again.');
+        if (error.code === 'permission-denied') {
+            alert('Permission denied. Please make sure you are authenticated.');
+        } else {
+            alert('Error submitting vote. Please try again.');
+        }
         return false;
     }
 }
@@ -100,82 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Voting system initialized');
 });
 
-// Process timed votes (end of day update)
-async function processTimedVotes() {
-    console.log('Starting timed votes processing...');
-    try {
-        const markersRef = collection(db, 'markers');
-        const snapshot = await getDocs(markersRef);
-        
-        const batch = writeBatch(db);
-        let updatedCount = 0;
-        let addedCount = 0;
-        let removedCount = 0;
+// Note: processTimedVotes has been moved to Cloud Functions
+// This client-side version is kept temporarily for the dev button
+// but will be replaced with an HTTP call to the Cloud Function
 
-        for (const docSnap of snapshot.docs) {
-            const data = docSnap.data();
-            const markerId = docSnap.id;
-            const oldStatus = data.status;
-            
-            // Skip already removed markers (all types now have voting)
-            if (data.status === 'removed') continue;
-
-            const yes = data.votesYes || 0;
-            const no = data.votesNo || 0;
-            let newStatus = data.status;
-
-            if (data.status === 'pending') {
-                if (no > yes) {
-                    newStatus = 'removed';
-                } else {
-                    // ties (yes == no) or yes > no mean confirmed
-                    newStatus = 'verified';
-                    addedCount++;
-                }
-            } else if (data.status === 'verified') {
-                if (no > yes) {
-                    newStatus = 'removed';
-                    removedCount++;
-                }
-                // ties or yes > no mean it remains verified
-            }
-
-            // Update marker status and reset votes
-            const markerRef = doc(db, 'markers', markerId);
-            batch.update(markerRef, {
-                status: newStatus,
-                votesYes: 0,
-                votesNo: 0,
-                lastVerifiedAt: new Date()
-            });
-            updatedCount++;
-        }
-
-        // Wipe all votes from the 'votes' collection
-        const votesRef = collection(db, 'votes');
-        const votesSnapshot = await getDocs(votesRef);
-        votesSnapshot.docs.forEach(voteDoc => {
-            batch.delete(voteDoc.ref);
-        });
-
-        await batch.commit();
-        
-        // Create news post with update summary
-        const today = new Date();
-        const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
-        await addDoc(collection(db, 'news'), {
-            title: `Updates ${dateStr}`,
-            message: `+${addedCount} objects added, -${removedCount} objects removed`,
-            createdAt: serverTimestamp(),
-            type: 'vote_update'
-        });
-        
-        console.log(`Processed ${updatedCount} markers and cleared all votes. Added: ${addedCount}, Removed: ${removedCount}`);
-        return { success: true, count: updatedCount, added: addedCount, removed: removedCount };
-    } catch (error) {
-        console.error('Error processing timed votes:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-export { submitVote, hasUserVoted, processTimedVotes };
+export { submitVote, hasUserVoted };

@@ -299,18 +299,15 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _handleVote(Tent tent, bool stillThere) async {
     try {
-      final sessionId = _sessionService.getSessionId();
-      
       // Check if already voted
-      final hasVoted = await _firebaseService.hasVoted(tent.id, sessionId);
+      final hasVoted = await _firebaseService.hasVoted(tent.id);
       if (hasVoted) {
-        _showError('You have already voted on this tent');
+        _showError('You have already voted on this tent today');
         return;
       }
 
       await _firebaseService.submitVote(
         tentId: tent.id,
-        sessionId: sessionId,
         stillThere: stillThere,
       );
 

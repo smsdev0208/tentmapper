@@ -1,6 +1,9 @@
 import { db } from './firebase-config.js';
 import { collection, query, orderBy, onSnapshot, where, Timestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { processTimedVotes } from './voting.js';
+
+// Cloud Function URL - Update this after deploying Cloud Functions
+// Get the URL from: Firebase Console > Functions > processVotes > Trigger URL
+const PROCESS_VOTES_FUNCTION_URL = 'YOUR_CLOUD_FUNCTION_URL_HERE';
 
 // UI State
 let currentTab = 'map';
@@ -34,6 +37,33 @@ document.addEventListener('DOMContentLoaded', () => {
     initDevControls();
 });
 
+// Call Cloud Function to process votes
+async function triggerVoteProcessing() {
+    try {
+        if (PROCESS_VOTES_FUNCTION_URL === 'YOUR_CLOUD_FUNCTION_URL_HERE') {
+            alert('Cloud Function URL not configured. Please update PROCESS_VOTES_FUNCTION_URL in ui.js after deploying functions.');
+            return { success: false, error: 'URL not configured' };
+        }
+        
+        const response = await fetch(PROCESS_VOTES_FUNCTION_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        return result;
+    } catch (error) {
+        console.error('Error calling Cloud Function:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 // Dev Controls
 function initDevControls() {
     const devBtn = document.getElementById('dev-trigger-update');
@@ -42,12 +72,15 @@ function initDevControls() {
             if (confirm('DEBUG: Are you sure you want to trigger the midnight voting update now? This will update marker statuses and WIPE all current votes.')) {
                 devBtn.disabled = true;
                 devBtn.textContent = 'Processing...';
-                const result = await processTimedVotes();
+                
+                const result = await triggerVoteProcessing();
+                
                 if (result.success) {
-                    alert(`Update successful! Processed ${result.count} markers.`);
+                    alert(`Update successful!\n\nProcessed: ${result.processed} markers\nAdded: ${result.added}\nRemoved: ${result.removed}\nVotes cleared: ${result.votesCleared}`);
                 } else {
                     alert(`Update failed: ${result.error}`);
                 }
+                
                 devBtn.disabled = false;
                 devBtn.textContent = 'Dev: Trigger Update';
             }

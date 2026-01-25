@@ -1519,3 +1519,35 @@ body {
         width: 56px;
     }
 }
+
+/* Privacy Notice */
+.privacy-notice {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 12px 20px;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    text-align: center;
+    z-index: 900;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.privacy-notice svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+    .privacy-notice {
+        font-size: 0.7rem;
+        padding: 10px 15px;
+    }
+}

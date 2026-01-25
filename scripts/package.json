@@ -1,0 +1,16 @@
+{
+  "name": "tent-mapper-dev-tools",
+  "version": "1.0.0",
+  "description": "Command-line dev tools for Tent Mapper database management",
+  "main": "dev-tools.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["firebase", "admin", "dev-tools"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "node-fetch": "^2.6.7"
+  }
+}
