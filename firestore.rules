@@ -28,12 +28,11 @@ service cloud.firestore {
       allow create: if request.resource.data.keys().hasAll([
         'type', 'latitude', 'longitude', 'createdAt', 'status', 'photoUrls'
       ]) && request.resource.data.status == 'pending'
-         && (request.resource.data.type in ['tent', 'rv', 'encampment', 'incident'])
-         // Incidents don't have voting fields
-         && (request.resource.data.type == 'incident' || 
-             (request.resource.data.keys().hasAll(['votesYes', 'votesNo', 'votingEndsAt'])
-              && request.resource.data.votesYes == 0
-              && request.resource.data.votesNo == 0));
+         && (request.resource.data.type in ['tent', 'rv', 'encampment', 'structure'])
+         // Structures now have voting fields
+         && (request.resource.data.keys().hasAll(['votesYes', 'votesNo', 'votingEndsAt'])
+             && request.resource.data.votesYes == 0
+             && request.resource.data.votesNo == 0);
       
       // Allow updates only to specific fields (voting and status)
       allow update: if request.resource.data.diff(resource.data)
@@ -47,11 +46,27 @@ service cloud.firestore {
       
       // Allow creating votes with required fields
       // Support both legacy tentId and new markerId
+      // Support both sessionId and userId
       allow create: if (
         (request.resource.data.keys().hasAll(['tentId', 'sessionId', 'vote', 'timestamp']) ||
-         request.resource.data.keys().hasAll(['markerId', 'sessionId', 'vote', 'timestamp']))
+         request.resource.data.keys().hasAll(['markerId', 'sessionId', 'vote', 'timestamp']) ||
+         request.resource.data.keys().hasAll(['markerId', 'userId', 'vote', 'timestamp']))
         && (request.resource.data.vote == 'yes' || request.resource.data.vote == 'no')
       );
+    }
+
+    // User Submissions collection - track daily limits
+    match /userSubmissions/{submissionId} {
+      // Users can read and write their own submission records
+      allow read, write: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Also allow reading if the existing document belongs to the user
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // News collection - site updates
+    match /news/{newsId} {
+      allow read: if true;
+      allow write: if false; // Only via Admin SDK/Console
     }
   }
 }

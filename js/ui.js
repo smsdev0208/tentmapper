@@ -573,14 +573,15 @@ export function showMarkerDetailsSidebar(marker) {
         const yesPercent = totalVotes > 0 ? (votesYes / totalVotes) * 100 : 50;
         
         let statusText = '';
+        const displayType = typeLabel.toLowerCase();
         if (marker.status === 'pending') {
             statusText = votesNo > votesYes 
-                ? 'No votes leading: Tent will not be added' 
-                : 'Yes votes leading: Tent will be added to map';
+                ? `No votes leading: ${typeLabel} will not be added` 
+                : `Yes votes leading: ${typeLabel} will be added to map`;
         } else {
             statusText = votesNo > votesYes 
-                ? 'No votes leading: Tent will be removed' 
-                : 'Yes votes leading: Tent will remain';
+                ? `No votes leading: ${typeLabel} will be removed` 
+                : `Yes votes leading: ${typeLabel} will remain`;
         }
 
         voteSection = `
