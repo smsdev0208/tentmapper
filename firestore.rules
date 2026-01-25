@@ -57,10 +57,14 @@ service cloud.firestore {
 
     // User Submissions collection - track daily limits
     match /userSubmissions/{submissionId} {
-      // Users can read and write their own submission records
-      allow read, write: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      // Also allow reading if the existing document belongs to the user
+      // Allow users to read their own submission records
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Allow users to create their own submission records
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Allow users to update their own submission records
+      allow update: if request.auth != null && 
+                       resource.data.userId == request.auth.uid && 
+                       request.resource.data.userId == request.auth.uid;
     }
 
     // News collection - site updates

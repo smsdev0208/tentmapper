@@ -538,6 +538,15 @@ body {
     filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));
 }
 
+/* Pending markers - semi-transparent */
+.marker-icon-wrapper.pending {
+    opacity: 0.6;
+}
+
+.marker-icon-wrapper.pending img {
+    filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));
+}
+
 .legend-item.pending {
     background: var(--pending);
     color: #000;

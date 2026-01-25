@@ -62,13 +62,13 @@ const markerIcons = {
     tent: {
         pending: L.divIcon({
             className: 'custom-marker',
-            html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(30deg) saturate(2);"><img src="tent.png"></div>',
+            html: '<div class="marker-icon-wrapper pending"><img src="tent.png"></div>',
             iconSize: [30, 30],
             iconAnchor: [15, 30]
         }),
         verified: L.divIcon({
             className: 'custom-marker',
-            html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(350deg) saturate(1.5);"><img src="tent.png"></div>',
+            html: '<div class="marker-icon-wrapper"><img src="tent.png"></div>',
             iconSize: [30, 30],
             iconAnchor: [15, 30]
         })
@@ -76,13 +76,13 @@ const markerIcons = {
     rv: {
         pending: L.divIcon({
             className: 'custom-marker',
-            html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(30deg) saturate(2);"><img src="rv.png"></div>',
+            html: '<div class="marker-icon-wrapper pending"><img src="rv.png"></div>',
             iconSize: [30, 30],
             iconAnchor: [15, 30]
         }),
         verified: L.divIcon({
             className: 'custom-marker',
-            html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(350deg) saturate(1.5);"><img src="rv.png"></div>',
+            html: '<div class="marker-icon-wrapper"><img src="rv.png"></div>',
             iconSize: [30, 30],
             iconAnchor: [15, 30]
         })
@@ -90,13 +90,13 @@ const markerIcons = {
     encampment: {
         pending: L.divIcon({
             className: 'custom-marker',
-            html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(30deg) saturate(2);"><img src="encampment.png"></div>',
+            html: '<div class="marker-icon-wrapper pending"><img src="encampment.png"></div>',
             iconSize: [30, 30],
             iconAnchor: [15, 30]
         }),
         verified: L.divIcon({
             className: 'custom-marker',
-            html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(350deg) saturate(1.5);"><img src="encampment.png"></div>',
+            html: '<div class="marker-icon-wrapper"><img src="encampment.png"></div>',
             iconSize: [30, 30],
             iconAnchor: [15, 30]
         })
@@ -104,13 +104,13 @@ const markerIcons = {
     structure: {
         pending: L.divIcon({
             className: 'custom-marker',
-            html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(30deg) saturate(2);"><img src="structure.png"></div>',
+            html: '<div class="marker-icon-wrapper pending"><img src="structure.png"></div>',
             iconSize: [30, 30],
             iconAnchor: [15, 30]
         }),
         verified: L.divIcon({
             className: 'custom-marker',
-            html: '<div class="marker-icon-wrapper" style="filter: hue-rotate(350deg) saturate(1.5);"><img src="structure.png"></div>',
+            html: '<div class="marker-icon-wrapper"><img src="structure.png"></div>',
             iconSize: [30, 30],
             iconAnchor: [15, 30]
         })

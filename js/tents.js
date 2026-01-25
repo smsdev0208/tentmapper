@@ -130,6 +130,7 @@ async function checkSubmissionLimit(userId) {
 // Increment user's submission count for today
 async function incrementSubmissionCount(userId) {
     try {
+        console.log('Incrementing submission count for user:', userId);
         // Get today's date at midnight for consistent grouping
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -140,26 +141,34 @@ async function incrementSubmissionCount(userId) {
             where('date', '>=', Timestamp.fromDate(today))
         );
         
+        console.log('Querying for existing submissions...');
         const snapshot = await getDocs(q);
+        console.log('Query complete. Empty:', snapshot.empty);
         
         if (snapshot.empty) {
             // Create new submission record for today
-            await addDoc(userSubmissionsRef, {
+            console.log('Creating new submission record...');
+            const docRef = await addDoc(userSubmissionsRef, {
                 userId: userId,
                 date: Timestamp.fromDate(today),
                 count: 1,
                 createdAt: serverTimestamp()
             });
+            console.log('New submission record created:', docRef.id);
         } else {
             // Update existing record
+            console.log('Updating existing submission record...');
             const docRef = snapshot.docs[0].ref;
             const currentCount = snapshot.docs[0].data().count || 0;
             await updateDoc(docRef, {
                 count: currentCount + 1
             });
+            console.log('Submission count updated to:', currentCount + 1);
         }
     } catch (error) {
         console.error('Error incrementing submission count:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
         // Don't throw - allow submission to continue even if tracking fails
     }
 }
