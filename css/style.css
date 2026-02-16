@@ -847,7 +847,7 @@ body {
     pointer-events: auto;
     z-index: 2000;
     width: min(320px, 90%);
-    transform: translate(-50%, calc(-100% - 15px));
+    transform: translate(-50%, calc(-100% - 45px));
     border-radius: 16px;
     transition: transform 0.15s ease;
 }
